@@ -60,8 +60,10 @@
     selectedFile = null;
     fileInput.value = "";
     previewImage.removeAttribute("src");
+    previewImage.hidden = true;
     preview.hidden = true;
     prompt.hidden = false;
+    drop.classList.remove("has-image");
     diagnoseButton.disabled = true;
     hideDiagnosisStates();
     if (emptyState) emptyState.hidden = false;
@@ -109,9 +111,11 @@
     fileInput.value = "";
     previewUrl = URL.createObjectURL(file);
     previewImage.src = previewUrl;
+    previewImage.hidden = false;
     if (previewName) previewName.textContent = file.name;
     if (previewSize) previewSize.textContent = formatFileSize(file.size);
     prompt.hidden = true;
+    drop.classList.add("has-image");
     preview.hidden = false;
     diagnoseButton.disabled = false;
     setUploadError("");
@@ -127,8 +131,10 @@
     selectedFile = null;
     fileInput.value = "";
     previewImage.removeAttribute("src");
+    previewImage.hidden = true;
     preview.hidden = true;
     prompt.hidden = false;
+    drop.classList.remove("has-image");
     diagnoseButton.disabled = true;
     setUploadError("");
     hideDiagnosisStates();

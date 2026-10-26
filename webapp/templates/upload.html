@@ -56,14 +56,15 @@ endblock %} {% block content %}
           >JPG or PNG, up to 8 MB</span
         >
       </div>
+      <img
+        class="upload-dropzone-image"
+        id="preview-image"
+        alt="Selected leaf preview"
+        hidden
+      />
     </div>
 
     <div class="upload-preview" id="preview" hidden>
-      <img
-        class="upload-preview-image"
-        id="preview-image"
-        alt="Selected leaf preview"
-      />
       <div class="upload-preview-info">
         <strong id="preview-name"></strong>
         <span id="preview-size"></span>
