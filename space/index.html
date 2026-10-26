@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Plant Disease Detection</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">❦</span><span>Plant Disease Detection</span></div>
+    <a href="https://github.com/Praneethchowdary07/Plant-Disease-Detection" target="_blank" rel="noreferrer">Source on GitHub</a>
+  </header>
+
+  <main class="main">
+    <section class="intro">
+      <h1>Detect plant diseases from a leaf photo</h1>
+      <p>A ResNet18 deep learning model trained on 23 classes of apple, corn, pepper, potato and tomato leaves. The model runs privately in your browser. <span id="acc"></span></p>
+    </section>
+
+    <section class="two">
+      <div class="card">
+        <h3>1. Upload a leaf image</h3>
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="image/*" hidden />
+          <div class="ph" id="ph"><b>Drop an image here or click to browse</b><span class="small">JPG or PNG, one leaf, plain background works best</span></div>
+        </label>
+        <p class="small" style="margin:14px 0 0">Or try an example:</p>
+        <div class="ex">
+          <button type="button" data-src="examples/apple-scab.jpg" title="apple scab"><img src="examples/apple-scab.jpg" alt="apple scab" /></button><button type="button" data-src="examples/corn-common-rust.jpg" title="corn common rust"><img src="examples/corn-common-rust.jpg" alt="corn common rust" /></button><button type="button" data-src="examples/pepper-bacterial-spot.jpg" title="pepper bacterial spot"><img src="examples/pepper-bacterial-spot.jpg" alt="pepper bacterial spot" /></button><button type="button" data-src="examples/potato-early-blight.jpg" title="potato early blight"><img src="examples/potato-early-blight.jpg" alt="potato early blight" /></button><button type="button" data-src="examples/tomato-healthy.jpg" title="tomato healthy"><img src="examples/tomato-healthy.jpg" alt="tomato healthy" /></button><button type="button" data-src="examples/tomato-late-blight.jpg" title="tomato late blight"><img src="examples/tomato-late-blight.jpg" alt="tomato late blight" /></button>
+        </div>
+        <div class="actions">
+          <button class="btn" id="clear" type="button">Clear</button>
+          <button class="btn primary" id="go" type="button" disabled>Analyze leaf</button>
+        </div>
+      </div>
+
+      <div class="card" id="out">
+        <h3>2. Result</h3>
+        <div class="empty" id="empty"><p class="small">Results appear here after you analyze an image.</p></div>
+        <div class="result" id="result" hidden>
+          <span class="badge" id="status"></span>
+          <h2 id="disease"></h2>
+          <div class="small" id="crop"></div>
+          <dl class="kv">
+            <dt>Confidence</dt><dd><span id="conf"></span><div class="bar"><i id="confbar"></i></div></dd>
+            <dt>Affected area</dt><dd><span id="sev"></span><div class="bar warn"><i id="sevbar"></i></div></dd>
+            <dt>Expected yield</dt><dd id="yield"></dd>
+            <dt>What to do</dt><dd id="sol"></dd>
+          </dl>
+          <div class="top3" id="top3"></div>
+        </div>
+        <div id="err"></div>
+      </div>
+    </section>
+
+    <p class="disclaimer">Educational demo. Yield figures are rough estimates — confirm with a local agriculture expert before treating crops.</p>
+  </main>
+  <footer class="foot">Python · PyTorch · ResNet18 · ONNX Runtime Web — built by Korrapati Praneeth Chowdary</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

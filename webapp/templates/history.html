@@ -1,0 +1,117 @@
+{% extends "app_base.html" %}
+{% set active_page = "history" %}
+
+{% block title %}Diagnosis History | LeafLens{% endblock %}
+{% block page_title %}Diagnosis History{% endblock %}
+
+{% block content %}
+  <section class="history-heading">
+    <div>
+      <h2>Diagnosis History</h2>
+      <p>All your past leaf scans</p>
+    </div>
+    <a class="primary-button" href="/upload">Scan New Leaf</a>
+  </section>
+
+  <section class="panel history-panel">
+    <form class="history-filter-form" method="GET" action="/history">
+      <label class="history-search">
+        <span class="history-visually-hidden">Search crop or disease</span>
+        <input type="search" name="q" placeholder="Search crop or disease" value="{{ request.args.get('q', filters.get('q', '')) }}" />
+      </label>
+      <label>
+        <span class="history-visually-hidden">Crop</span>
+        <select name="crop">
+          <option value=""{% if not filters.get('crop') %} selected{% endif %}>All crops</option>
+          {% for crop_option in crop_options %}<option value="{{ crop_option }}"{% if filters.get('crop') == crop_option %} selected{% endif %}>{{ crop_option }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>
+        <span class="history-visually-hidden">Result</span>
+        <select name="result">
+          <option value="all"{% if filters.get('result', 'all') == 'all' %} selected{% endif %}>All results</option>
+          <option value="healthy"{% if filters.get('result') == 'healthy' %} selected{% endif %}>Healthy</option>
+          <option value="diseased"{% if filters.get('result') == 'diseased' %} selected{% endif %}>Diseased</option>
+        </select>
+      </label>
+      <label>
+        <span class="history-visually-hidden">Sort by date</span>
+        <select name="sort">
+          <option value="newest"{% if filters.get('sort', 'newest') == 'newest' %} selected{% endif %}>Newest first</option>
+          <option value="oldest"{% if filters.get('sort') == 'oldest' %} selected{% endif %}>Oldest first</option>
+        </select>
+      </label>
+      <button class="primary-button" type="submit">Apply</button>
+      <a class="history-reset-link" href="/history">Reset</a>
+    </form>
+
+    {% if history_error %}
+      <p class="panel-empty" role="alert">History is currently unavailable. Please try again later.</p>
+    {% else %}
+    <p class="history-summary">Showing {{ items|length }} of {{ total }} diagnoses</p>
+
+    {% if items %}
+      {% if pages <= 5 %}{% set pagination_start = 1 %}{% set pagination_end = pages %}{% elif page <= 3 %}{% set pagination_start = 1 %}{% set pagination_end = 5 %}{% elif page >= pages - 2 %}{% set pagination_start = pages - 3 %}{% set pagination_end = pages %}{% else %}{% set pagination_start = page - 1 %}{% set pagination_end = page + 1 %}{% endif %}
+      <div class="recent-table-wrap history-table-wrap">
+        <table class="recent-table history-table">
+          <thead><tr><th scope="col">Image</th><th scope="col">Predicted crop</th><th scope="col">Selected crop</th><th scope="col">Result</th><th scope="col">Confidence</th><th scope="col">Date</th><th scope="col">Actions</th></tr></thead>
+          <tbody>
+            {% for item in items %}
+              {% set detail_url = "/history/" ~ item.request_id %}
+              <tr class="history-row history-row-link" data-href="{{ detail_url }}" tabindex="0" aria-label="View {{ item.crop }} diagnosis">
+                <td data-label="Image">
+                  {% if item.image_url %}<img class="diagnosis-thumb history-thumb" src="{{ item.image_url }}" alt="{{ item.crop }} leaf" />{% else %}<span class="diagnosis-thumb thumb-placeholder history-thumb" aria-label="No image available"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5.2 3.2 5.2C13 17.6 18 12 20 4Z"></path><path d="M3 21c3-6 7-10 13-14"></path></svg></span>{% endif %}
+                </td>
+                <td data-label="Predicted crop">{{ item.crop }}</td>
+                <td data-label="Selected crop">{{ item.selected_crop }}</td>
+                <td data-label="Result">
+                  {% if item.status == "failed" %}<span class="history-failed">Analysis failed</span>{% elif item.status == "pending" %}<span class="history-failed">Analysis in progress</span>{% else %}{% if not item.is_healthy %}<span>{{ item.disease }}</span>{% endif %} <span class="history-result-badge{% if item.is_healthy %} history-result-healthy{% else %} history-result-diseased{% endif %}">{{ "Healthy" if item.is_healthy else "Diseased" }}</span>{% endif %}
+                </td>
+                <td data-label="Confidence">
+                  {% if item.status != "completed" %}<span class="history-failed">Not available</span>{% else %}{% set confidence = item.confidence|float %}<span class="confidence-badge{% if confidence >= 80 %} confidence-high{% elif confidence >= 60 %} confidence-medium{% else %} confidence-low{% endif %}">{% if confidence < 60 %}<span>Low</span> {% endif %}{{ confidence|round|int }}%</span>{% endif %}
+                </td>
+                <td data-label="Date">{{ item.date }}</td>
+                <td data-label="Actions" class="history-actions">
+                  <a class="history-view-link" href="{{ detail_url }}">View</a>
+                  <button class="history-delete-trigger" type="button" data-delete-url="/history/{{ item.request_id }}/delete" aria-label="Delete diagnosis {{ item.request_id }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3"></path></svg>
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <nav class="history-pagination" aria-label="History pages">
+        {% if page > 1 %}<a class="history-page-link" href="/history?page={{ page - 1 }}&amp;q={{ filters.get('q', '')|urlencode }}&amp;crop={{ filters.get('crop', '')|urlencode }}&amp;result={{ filters.get('result', 'all')|urlencode }}&amp;sort={{ filters.get('sort', 'newest')|urlencode }}" aria-label="Previous page">Previous</a>{% else %}<span class="history-page-link is-disabled" aria-disabled="true">Previous</span>{% endif %}
+        {% if pagination_start > 1 %}<a class="history-page-number" href="/history?page=1&amp;q={{ filters.get('q', '')|urlencode }}&amp;crop={{ filters.get('crop', '')|urlencode }}&amp;result={{ filters.get('result', 'all')|urlencode }}&amp;sort={{ filters.get('sort', 'newest')|urlencode }}">1</a>{% if pagination_start > 2 %}<span class="history-ellipsis" aria-hidden="true">&hellip;</span>{% endif %}{% endif %}
+        {% for page_number in range(pagination_start, pagination_end + 1) %}<a class="history-page-number{% if page_number == page %} is-current{% endif %}" href="/history?page={{ page_number }}&amp;q={{ filters.get('q', '')|urlencode }}&amp;crop={{ filters.get('crop', '')|urlencode }}&amp;result={{ filters.get('result', 'all')|urlencode }}&amp;sort={{ filters.get('sort', 'newest')|urlencode }}"{% if page_number == page %} aria-current="page"{% endif %}>{{ page_number }}</a>{% endfor %}
+        {% if pagination_end < pages %}<span class="history-ellipsis" aria-hidden="true">&hellip;</span>{% if pagination_start > 1 %}<a class="history-page-number" href="/history?page={{ pages }}&amp;q={{ filters.get('q', '')|urlencode }}&amp;crop={{ filters.get('crop', '')|urlencode }}&amp;result={{ filters.get('result', 'all')|urlencode }}&amp;sort={{ filters.get('sort', 'newest')|urlencode }}">{{ pages }}</a>{% endif %}{% endif %}
+        {% if page < pages %}<a class="history-page-link" href="/history?page={{ page + 1 }}&amp;q={{ filters.get('q', '')|urlencode }}&amp;crop={{ filters.get('crop', '')|urlencode }}&amp;result={{ filters.get('result', 'all')|urlencode }}&amp;sort={{ filters.get('sort', 'newest')|urlencode }}" aria-label="Next page">Next</a>{% else %}<span class="history-page-link is-disabled" aria-disabled="true">Next</span>{% endif %}
+      </nav>
+    {% elif total == 0 and not filters.get('q') and not filters.get('crop') and filters.get('result', 'all') == 'all' %}
+      <div class="history-empty">
+        <span class="history-empty-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M51 10C32 11 18 17 13 30c-3 9 2 17 11 17 13 0 23-15 27-37Z"></path><path d="M10 55c9-16 20-28 36-40"></path></svg></span>
+        <h3>No diagnoses yet</h3>
+        <p>Your leaf scan history will appear here.</p>
+        <a class="primary-button" href="/upload">Scan Your First Leaf</a>
+      </div>
+    {% else %}
+      <div class="history-filter-empty"><p>No diagnoses match your filters</p><a href="/history">Reset filters</a></div>
+    {% endif %}
+    {% endif %}
+  </section>
+
+  <dialog class="history-delete-dialog" id="history-delete-dialog" aria-labelledby="history-delete-title" aria-describedby="history-delete-description">
+    <form method="POST" id="history-delete-form">
+      <h2 id="history-delete-title">Delete diagnosis?</h2>
+      <p id="history-delete-description">Delete this diagnosis? This cannot be undone.</p>
+      <div class="history-dialog-actions">
+        <button class="history-cancel-button" type="button" data-dialog-close>Cancel</button>
+        <button class="history-confirm-delete" type="submit">Delete</button>
+      </div>
+    </form>
+  </dialog>
+{% endblock %}
+
+{% block extra_scripts %}<script src="{{ url_for('static', filename='js/history.js') }}" defer></script>{% endblock %}

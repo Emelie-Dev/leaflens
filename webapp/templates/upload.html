@@ -1,0 +1,235 @@
+{% extends "app_base.html" %} {% set active_page = "upload" %} {% block title
+%}Upload | LeafLens{% endblock %} {% block page_title %}Upload Leaf Image{%
+endblock %} {% block content %}
+<div class="upload-layout two">
+  <section class="panel upload-panel card" aria-labelledby="upload-heading">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title" id="upload-heading">Upload</h2>
+        <p class="panel-subtitle">Choose a clear photo of a single leaf.</p>
+      </div>
+    </header>
+
+    <label class="upload-crop-field" for="crop-type">
+      <span
+        >Crop type <span class="upload-crop-optional">(optional)</span></span
+      >
+      <select id="crop-type" name="crop_type">
+        <option value="">Not sure</option>
+        <option value="Apple">Apple</option>
+        <option value="Corn (maize)">Corn (maize)</option>
+        <option value="Bell pepper">Bell pepper</option>
+        <option value="Potato">Potato</option>
+        <option value="Tomato">Tomato</option>
+      </select>
+    </label>
+
+    <input
+      class="upload-file-input"
+      id="file"
+      type="file"
+      accept="image/jpeg,image/png"
+    />
+
+    <div
+      class="upload-dropzone drop"
+      id="drop"
+      role="button"
+      tabindex="0"
+      aria-controls="file"
+      aria-describedby="upload-hint"
+    >
+      <div class="upload-drop-prompt ph" id="ph">
+        <span class="upload-drop-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32">
+            <path d="M16 21V5m0 0-6 6m6-6 6 6"></path>
+            <path d="M6 19v7h20v-7"></path>
+            <path
+              d="M24 6c-7 .2-12 2.1-13.5 6.5-1 2.8.5 5 3.4 5.1C19 17.8 22.5 13 24 6Z"
+            ></path>
+          </svg>
+        </span>
+        <span class="upload-drop-title"
+          >Drag and drop a leaf photo here, or click to browse</span
+        >
+        <span class="upload-drop-hint" id="upload-hint"
+          >JPG or PNG, up to 8 MB</span
+        >
+      </div>
+    </div>
+
+    <div class="upload-preview" id="preview" hidden>
+      <img
+        class="upload-preview-image"
+        id="preview-image"
+        alt="Selected leaf preview"
+      />
+      <div class="upload-preview-info">
+        <strong id="preview-name"></strong>
+        <span id="preview-size"></span>
+      </div>
+      <button class="upload-remove-button" id="clear" type="button">
+        Remove
+      </button>
+    </div>
+
+    <p class="upload-error" id="upload-error" role="alert" hidden></p>
+
+    <button class="upload-submit-button" id="go" type="button" disabled>
+      <span class="upload-spinner" aria-hidden="true" hidden></span>
+      <span id="go-label">Diagnose Leaf</span>
+    </button>
+
+    <div class="upload-examples">
+      <p class="upload-examples-title">Try an example</p>
+      <div class="upload-example-list ex">
+        {% for e in examples %}
+        <button
+          class="upload-example-button"
+          type="button"
+          data-src="{{ url_for('static', filename='examples/' + e) }}"
+          data-name="{{ e }}"
+          aria-label="Use {{ e[:-4].replace('-', ' ') }} example"
+        >
+          <img src="{{ url_for('static', filename='examples/' + e) }}" alt="" />
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section
+    class="panel diagnosis-panel card"
+    id="out"
+    aria-labelledby="diagnosis-heading"
+    aria-live="polite"
+    aria-atomic="false"
+  >
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title" id="diagnosis-heading">Diagnosis</h2>
+        <p class="panel-subtitle">Your plant health results will show here.</p>
+      </div>
+    </header>
+
+    <div class="diagnosis-empty empty" id="empty">
+      <span class="diagnosis-empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <path
+            d="M51 10C32 11 18 17 13 30c-3 9 2 17 11 17 13 0 23-15 27-37Z"
+          ></path>
+          <path d="M10 55c9-16 20-28 36-40"></path>
+          <path d="M25 34c-1-6-5-11-11-14m21 2c0-6 3-10 8-15"></path>
+        </svg>
+      </span>
+      <h3>Your diagnosis will appear here</h3>
+      <p>Upload a leaf photo and select Diagnose Leaf to get started.</p>
+    </div>
+
+    <div class="diagnosis-loading" id="loading" aria-hidden="true" hidden>
+      <span class="skeleton skeleton-title"></span>
+      <span class="skeleton skeleton-copy"></span>
+      <span class="skeleton skeleton-meter"></span>
+      <span class="skeleton skeleton-copy"></span>
+      <span class="skeleton skeleton-block"></span>
+      <span class="skeleton skeleton-copy"></span>
+    </div>
+
+    <div class="diagnosis-result result" id="result" hidden>
+      <header class="diagnosis-result-header">
+        <div>
+          <p class="diagnosis-result-crop" id="crop"></p>
+          <h3 class="diagnosis-result-title" id="disease"></h3>
+        </div>
+        <span class="diagnosis-status" id="status"></span>
+      </header>
+
+      <div class="diagnosis-metric">
+        <div class="diagnosis-metric-heading">
+          <span>Confidence</span>
+          <strong id="conf"></strong>
+        </div>
+        <div
+          class="diagnosis-meter"
+          role="meter"
+          aria-label="Confidence"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span id="confbar"></span>
+        </div>
+      </div>
+      <p class="diagnosis-low-confidence" id="low-confidence" hidden>
+        Low confidence. Please consult an extension officer to confirm.
+      </p>
+
+      <div class="diagnosis-metric" id="severity-metric">
+        <div class="diagnosis-metric-heading">
+          <span>Affected leaf area</span>
+          <strong id="sev"></strong>
+        </div>
+        <div
+          class="diagnosis-meter diagnosis-meter-severity"
+          role="meter"
+          aria-label="Affected leaf area"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span id="sevbar"></span>
+        </div>
+      </div>
+
+      <div class="diagnosis-yield">
+        <span class="diagnosis-yield-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"
+            ></path>
+            <path d="M3 21c3-6 7-10 13-14"></path>
+          </svg>
+        </span>
+        <span class="diagnosis-yield-label">Expected yield</span>
+        <strong id="yield"></strong>
+      </div>
+
+      <section class="diagnosis-treatment" aria-labelledby="treatment-heading">
+        <h4 id="treatment-heading">Recommended Treatment</h4>
+        <p id="sol"></p>
+      </section>
+
+      <section
+        class="diagnosis-possibilities"
+        aria-labelledby="possibilities-heading"
+      >
+        <h4 id="possibilities-heading">Other possibilities</h4>
+        <div class="diagnosis-top3 top3" id="top3"></div>
+      </section>
+
+      <div class="diagnosis-actions">
+        <button class="upload-secondary-button" id="scan-another" type="button">
+          Scan Another Leaf
+        </button>
+        <a class="upload-history-link" href="/history">View History</a>
+      </div>
+    </div>
+
+    <div class="diagnosis-error" id="err" role="alert" hidden>
+      <span class="diagnosis-error-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 8v5m0 4h.01"></path>
+          <path
+            d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z"
+          ></path>
+        </svg>
+      </span>
+      <div>
+        <h3>Diagnosis unavailable</h3>
+        <p id="error-message"></p>
+        <a id="login-link" href="/login" hidden>Log in again</a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %} {% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}" defer></script>
+{% endblock %}

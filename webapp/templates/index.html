@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>Plant Disease Detection</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{{ url_for('static', filename='img/logo.svg') }}"
+    />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span class="logo">❦</span><span>Plant Disease Detection</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="intro">
+        <h1>Detect plant diseases from a leaf photo</h1>
+        <p>
+          A ResNet18 deep learning model trained on 23 classes of apple, corn,
+          pepper, potato and tomato leaves. <span id="acc"></span>
+        </p>
+      </section>
+
+      <section class="two">
+        <div class="card">
+          <h3>1. Upload a leaf image</h3>
+          <label class="drop" id="drop">
+            <input type="file" id="file" accept="image/*" hidden />
+            <div class="ph" id="ph">
+              <b>Drop an image here or click to browse</b
+              ><span class="small"
+                >JPG or PNG, one leaf, plain background works best</span
+              >
+            </div>
+          </label>
+          <p class="small" style="margin: 14px 0 0">Or try an example:</p>
+          <div class="ex">
+            {% for e in examples %}<button
+              type="button"
+              data-src="{{ url_for('static', filename='examples/' + e) }}"
+              title="{{ e[:-4].replace('-', ' ') }}"
+            >
+              <img
+                src="{{ url_for('static', filename='examples/' + e) }}"
+                alt="{{ e[:-4].replace('-', ' ') }}"
+              /></button
+            >{% endfor %}
+          </div>
+          <div class="actions">
+            <button class="btn" id="clear" type="button">Clear</button>
+            <button class="btn primary" id="go" type="button" disabled>
+              Analyze leaf
+            </button>
+          </div>
+        </div>
+
+        <div class="card" id="out">
+          <h3>2. Result</h3>
+          <div class="empty" id="empty">
+            <p class="small">Results appear here after you analyze an image.</p>
+          </div>
+          <div class="result" id="result" hidden>
+            <span class="badge" id="status"></span>
+            <h2 id="disease"></h2>
+            <div class="small" id="crop"></div>
+            <dl class="kv">
+              <dt>Confidence</dt>
+              <dd>
+                <span id="conf"></span>
+                <div class="bar"><i id="confbar"></i></div>
+              </dd>
+              <dt>Affected area</dt>
+              <dd>
+                <span id="sev"></span>
+                <div class="bar warn"><i id="sevbar"></i></div>
+              </dd>
+              <dt>Expected yield</dt>
+              <dd id="yield"></dd>
+              <dt>What to do</dt>
+              <dd id="sol"></dd>
+            </dl>
+            <div class="top3" id="top3"></div>
+          </div>
+          <div id="err"></div>
+        </div>
+      </section>
+
+      <p class="disclaimer">
+        Educational demo. Yield figures are rough estimates — confirm with a
+        local agriculture expert before treating crops.
+      </p>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let blob = null;
+
+      function setImage(b) {
+        blob = b;
+        $("ph").innerHTML =
+          `<img src="${URL.createObjectURL(b)}" alt="Selected leaf" />`;
+        $("go").disabled = false;
+        $("result").hidden = true;
+        $("empty").hidden = false;
+        $("err").innerHTML = "";
+      }
+      $("file").addEventListener(
+        "change",
+        (e) => e.target.files[0] && setImage(e.target.files[0]),
+      );
+      const drop = $("drop");
+      ["dragenter", "dragover"].forEach((t) =>
+        drop.addEventListener(t, (e) => {
+          e.preventDefault();
+          drop.classList.add("over");
+        }),
+      );
+      ["dragleave", "drop"].forEach((t) =>
+        drop.addEventListener(t, (e) => {
+          e.preventDefault();
+          drop.classList.remove("over");
+        }),
+      );
+      drop.addEventListener(
+        "drop",
+        (e) => e.dataTransfer.files[0] && setImage(e.dataTransfer.files[0]),
+      );
+      document
+        .querySelectorAll(".ex button")
+        .forEach((b) =>
+          b.addEventListener("click", async () =>
+            setImage(await (await fetch(b.dataset.src)).blob()),
+          ),
+        );
+      $("clear").addEventListener("click", () => {
+        blob = null;
+        $("file").value = "";
+        $("ph").innerHTML =
+          "<b>Drop an image here or click to browse</b><span class='small'>JPG or PNG, one leaf, plain background works best</span>";
+        $("go").disabled = true;
+        $("result").hidden = true;
+        $("empty").hidden = false;
+        $("err").innerHTML = "";
+      });
+
+      $("go").addEventListener("click", async () => {
+        if (!blob) return;
+        $("go").disabled = true;
+        $("go").textContent = "Analyzing…";
+        $("err").innerHTML = "";
+        try {
+          const fd = new FormData();
+          fd.append("file", blob, "leaf.jpg");
+          const res = await fetch("api/predict", { method: "POST", body: fd });
+          const d = await res.json();
+          if (!res.ok) throw new Error(d.error || "Prediction failed");
+          show(d);
+        } catch (e) {
+          $("result").hidden = true;
+          $("empty").hidden = true;
+          $("err").innerHTML = `<div class="notice error">${e.message}</div>`;
+        } finally {
+          $("go").disabled = false;
+          $("go").textContent = "Analyze leaf";
+        }
+      });
+
+      function show(d) {
+        $("empty").hidden = true;
+        $("result").hidden = false;
+        const s = $("status");
+        s.textContent = d.healthy ? "Healthy leaf" : "Disease detected";
+        s.className = "badge " + (d.healthy ? "ok" : "bad");
+        $("disease").textContent = d.disease;
+        $("crop").textContent = "Crop: " + d.crop;
+        $("conf").textContent = d.confidence + "%";
+        $("confbar").style.width = d.confidence + "%";
+        $("sev").textContent = d.healthy ? "None" : d.severity + "% of leaf";
+        $("sevbar").style.width =
+          (d.healthy ? 0 : Math.min(100, d.severity)) + "%";
+        $("yield").textContent = d.yield_rate;
+        $("sol").textContent = d.solution;
+        $("top3").innerHTML =
+          '<div class="small" style="color:var(--text-h);font-weight:500">Top predictions</div>' +
+          d.top3
+            .map(
+              (t) =>
+                `<div class="row"><div>${t.crop} — ${t.disease}<div class="bar"><i style="width:${t.p}%"></i></div></div><span>${t.p}%</span></div>`,
+            )
+            .join("");
+      }
+
+      fetch("api/model")
+        .then((r) => r.json())
+        .then((m) => {
+          if (m.ready && m.val_accuracy)
+            $("acc").textContent =
+              `Validation accuracy: ${(m.val_accuracy * 100).toFixed(1)}% on ${m.val_images.toLocaleString()} images.`;
+        })
+        .catch(() => {});
+    </script>
+  </body>
+</html>

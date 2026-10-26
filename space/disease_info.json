@@ -1,0 +1,146 @@
+{
+ "classes": {
+  "Apple___Apple_scab": {
+   "crop": "Apple",
+   "disease": "Apple scab",
+   "yield_rate": "50–70% (moderate to high loss)",
+   "solution": "Prune and destroy infected leaves/twigs, improve air circulation, avoid overhead irrigation, and spray protectant fungicides (e.g., captan, mancozeb) according to local guidelines."
+  },
+  "Apple___Black_rot": {
+   "crop": "Apple",
+   "disease": "Black rot",
+   "yield_rate": "60–80% (moderate loss)",
+   "solution": "Remove mummified fruits and cankered branches, sanitize orchard floor, and apply recommended fungicides at early fruit development stages."
+  },
+  "Apple___Cedar_apple_rust": {
+   "crop": "Apple",
+   "disease": "Cedar apple rust",
+   "yield_rate": "70–85% (low to moderate loss)",
+   "solution": "Remove nearby cedar hosts if possible, prune infected tissue, and use rust-specific fungicides at pink and bloom stages."
+  },
+  "Apple___healthy": {
+   "crop": "Apple",
+   "disease": "Healthy",
+   "yield_rate": "95–100% (no significant loss)",
+   "solution": "Maintain proper irrigation, fertilization, and regular scouting to keep trees healthy."
+  },
+  "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+   "crop": "Corn (maize)",
+   "disease": "Cercospora / gray leaf spot",
+   "yield_rate": "60–80% (moderate loss)",
+   "solution": "Use resistant hybrids, rotate with non-host crops, avoid dense planting, and apply foliar fungicides at VT–R1 if disease pressure is high."
+  },
+  "Corn_(maize)___Common_rust_": {
+   "crop": "Corn (maize)",
+   "disease": "Common rust",
+   "yield_rate": "75–90% (usually low loss with control)",
+   "solution": "Plant resistant hybrids and, if severe before tasselling, consider fungicide application as per local recommendations."
+  },
+  "Corn_(maize)___Northern_Leaf_Blight": {
+   "crop": "Corn (maize)",
+   "disease": "Northern leaf blight",
+   "yield_rate": "60–80% (moderate loss)",
+   "solution": "Use resistant varieties, rotate crops, bury crop residues, and apply foliar fungicides when lesions first appear on upper leaves."
+  },
+  "Corn_(maize)___healthy": {
+   "crop": "Corn (maize)",
+   "disease": "Healthy",
+   "yield_rate": "95–100% (no significant loss)",
+   "solution": "Continue good nutrient management, weed control, and regular monitoring."
+  },
+  "Pepper__bell___Bacterial_spot": {
+   "crop": "Bell pepper",
+   "disease": "Bacterial spot",
+   "yield_rate": "50–75% (moderate to high loss)",
+   "solution": "Use certified disease-free seed or seedlings, avoid working in wet foliage, remove infected plants, and apply copper-based bactericides as per label."
+  },
+  "Pepper__bell___healthy": {
+   "crop": "Bell pepper",
+   "disease": "Healthy",
+   "yield_rate": "95–100% (no significant loss)",
+   "solution": "Maintain balanced fertilization and irrigation; monitor for early disease symptoms."
+  },
+  "Potato___Early_blight": {
+   "crop": "Potato",
+   "disease": "Early blight",
+   "yield_rate": "60–80% (moderate loss)",
+   "solution": "Use resistant cultivars, avoid water stress, remove infected debris, and spray protective fungicides (chlorothalonil, mancozeb) on a schedule."
+  },
+  "Potato___Late_blight": {
+   "crop": "Potato",
+   "disease": "Late blight",
+   "yield_rate": "30–60% (very high loss if unmanaged)",
+   "solution": "Use certified seed, destroy volunteer potatoes, avoid overhead irrigation, and follow a strict fungicide spray program at first sign or favorable weather."
+  },
+  "Potato___healthy": {
+   "crop": "Potato",
+   "disease": "Healthy",
+   "yield_rate": "95–100% (no significant loss)",
+   "solution": "Maintain hilling, good drainage, and regular scouting for late blight and other diseases."
+  },
+  "Tomato_Bacterial_spot": {
+   "crop": "Tomato",
+   "disease": "Bacterial spot",
+   "yield_rate": "60–80% (moderate loss)",
+   "solution": "Use disease-free seed/transplants, avoid overhead irrigation, remove infected leaves, and apply copper-based bactericides."
+  },
+  "Tomato_Early_blight": {
+   "crop": "Tomato",
+   "disease": "Early blight",
+   "yield_rate": "60–80% (moderate loss)",
+   "solution": "Mulch around plants, remove lower infected leaves, rotate crops, and use protectant fungicides like chlorothalonil or mancozeb."
+  },
+  "Tomato_Late_blight": {
+   "crop": "Tomato",
+   "disease": "Late blight",
+   "yield_rate": "30–60% (very high loss if unmanaged)",
+   "solution": "Use resistant varieties, destroy infected plants immediately, avoid overhead watering, and apply systemic + protectant fungicides frequently."
+  },
+  "Tomato_Leaf_Mold": {
+   "crop": "Tomato",
+   "disease": "Leaf mold",
+   "yield_rate": "70–85% (low to moderate loss)",
+   "solution": "Improve greenhouse or field ventilation, avoid prolonged leaf wetness, remove infected leaves, and apply suitable fungicides if needed."
+  },
+  "Tomato_Septoria_leaf_spot": {
+   "crop": "Tomato",
+   "disease": "Septoria leaf spot",
+   "yield_rate": "65–85% (moderate loss)",
+   "solution": "Remove lower diseased leaves, avoid overhead irrigation, rotate away from solanaceous crops, and use protectant fungicides."
+  },
+  "Tomato_Spider_mites_Two_spotted_spider_mite": {
+   "crop": "Tomato",
+   "disease": "Two-spotted spider mites",
+   "yield_rate": "70–90% (can be high under heavy infestation)",
+   "solution": "Increase humidity slightly, use miticides or insecticidal soap, and encourage natural predators like lady beetles and predatory mites."
+  },
+  "Tomato__Target_Spot": {
+   "crop": "Tomato",
+   "disease": "Target spot",
+   "yield_rate": "60–80% (moderate loss)",
+   "solution": "Remove infected foliage, avoid water splash, rotate crops, and apply recommended fungicides when spots first appear."
+  },
+  "Tomato__Tomato_YellowLeaf__Curl_Virus": {
+   "crop": "Tomato",
+   "disease": "Yellow leaf curl virus",
+   "yield_rate": "20–60% (very high loss, virus disease)",
+   "solution": "Control whitefly vectors with insecticides or nets, use virus-tolerant varieties, remove and destroy infected plants immediately."
+  },
+  "Tomato__Tomato_mosaic_virus": {
+   "crop": "Tomato",
+   "disease": "Mosaic virus",
+   "yield_rate": "50–80% (high loss, virus disease)",
+   "solution": "Use resistant varieties, disinfect tools and hands, avoid smoking near plants, and remove infected plants to limit spread."
+  },
+  "Tomato_healthy": {
+   "crop": "Tomato",
+   "disease": "Healthy",
+   "yield_rate": "95–100% (no significant loss)",
+   "solution": "Maintain staking, pruning, balanced nutrition, and regular scouting."
+  }
+ },
+ "default": {
+  "yield_rate": "Not available",
+  "solution": "Follow good agronomic practices and consult local experts for precise management."
+ }
+}

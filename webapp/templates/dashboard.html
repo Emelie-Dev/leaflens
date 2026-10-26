@@ -1,0 +1,303 @@
+{% extends "app_base.html" %} {% set active_page = "dashboard" %} {% block title
+%}Dashboard | LeafLens{% endblock %} {% block page_title %}Dashboard{% endblock
+%} {% block content %} {% set healthy_percentage = (stats.healthy / stats.total
+* 100) if stats.total else 0 %} {% set diseased_percentage = (stats.diseased /
+stats.total * 100) if stats.total else 0 %} {% set daily_max = stats.daily |
+map(attribute='count') | max | default(0, true) %} {% set crop_max = stats.crops
+| map(attribute='count') | max | default(0, true) %}
+
+<section class="welcome-row">
+  <div>
+    <h2>Welcome back, {{ current_user_first_name or 'User' }}</h2>
+    <p>Here is a summary of your leaf scans</p>
+  </div>
+</section>
+
+{% if dashboard_error %}
+<section class="panel" role="alert">
+  <p class="panel-empty">
+    Dashboard data is currently unavailable. Please try again later.
+  </p>
+</section>
+{% elif stats.total == 0 %}
+<section class="empty-dashboard" aria-labelledby="empty-title">
+  <div class="empty-leaf" aria-hidden="true">
+    <svg viewBox="0 0 96 96">
+      <path
+        d="M76 17C48 18 27 27 20 46c-5 14 3 26 16 26 19 0 34-22 40-55Z"
+      ></path>
+      <path d="M16 80c13-23 30-40 52-56"></path>
+      <path d="M38 58c-1-9-7-16-16-20m29 1c0-8 4-15 11-21"></path>
+    </svg>
+  </div>
+  <h2 id="empty-title">No scans yet</h2>
+  <p>Upload a clear leaf photo to get your first plant health diagnosis.</p>
+  <a class="primary-button" href="/upload">Scan Your First Leaf</a>
+</section>
+{% else %}
+<section class="stats-grid" aria-label="Diagnosis statistics">
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-neutral"
+      ><svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 5h16v14H4z"></path>
+        <path d="M8 9h8M8 13h5"></path></svg
+    ></span>
+    <div class="stat-value">{{ stats.total }}</div>
+    <div class="stat-label">Total Diagnoses</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-green"
+      ><svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m5 12 4 4L19 6"></path>
+        <circle cx="12" cy="12" r="9"></circle></svg
+    ></span>
+    <div class="stat-value">{{ stats.healthy }}</div>
+    <div class="stat-label">Healthy Leaves</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-red"
+      ><svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 8v5m0 4h.01"></path>
+        <path
+          d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z"
+        ></path></svg
+    ></span>
+    <div class="stat-value">{{ stats.diseased }}</div>
+    <div class="stat-label">Diseased Leaves</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-green"
+      ><svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m3 17 6-6 4 4 8-9"></path>
+        <path d="M15 6h6v6"></path></svg
+    ></span>
+    <div class="stat-value">
+      {{ stats.avg_confidence | round(1) }}<span class="stat-unit">%</span>
+    </div>
+    <div class="stat-label">Average Confidence</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-amber"
+      ><svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 9v4m0 4h.01"></path>
+        <circle cx="12" cy="12" r="9"></circle></svg
+    ></span>
+    <div class="stat-value">{{ stats.low_confidence }}</div>
+    <div class="stat-label">Needs Expert Check</div>
+  </article>
+</section>
+
+<section class="panel-grid" aria-label="Diagnosis overview">
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Healthy vs Diseased</h2>
+        <p class="panel-subtitle">Overall diagnosis breakdown</p>
+      </div>
+    </header>
+    <div class="donut-layout">
+      <div
+        class="donut-chart"
+        role="img"
+        aria-label="{{ stats.healthy }} healthy and {{ stats.diseased }} diseased leaves out of {{ stats.total }}"
+        style="--healthy-percent: {{ healthy_percentage }}%; --diseased-start: {{ healthy_percentage }}%; --diseased-end: {{ healthy_percentage + diseased_percentage }}%"
+      >
+        <div class="donut-center">
+          <strong>{{ stats.total }}</strong>
+          <span>Total scans</span>
+        </div>
+      </div>
+      <ul class="chart-legend">
+        <li>
+          <span class="legend-dot legend-green"></span><span>Healthy</span
+          ><strong>{{ stats.healthy }}</strong>
+        </li>
+        <li>
+          <span class="legend-dot legend-red"></span><span>Diseased</span
+          ><strong>{{ stats.diseased }}</strong>
+        </li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Scans in the Last 30 Days</h2>
+        <p class="panel-subtitle">Daily leaf diagnoses</p>
+      </div>
+    </header>
+    <div
+      class="daily-chart"
+      role="img"
+      aria-label="Daily scans during the last 30 days"
+    >
+      <div class="daily-bars">
+        {% for item in stats.daily %}
+        <div class="daily-bar-column">
+          <div class="daily-bar-track">
+            <span
+              class="daily-bar"
+              title="{{ item.day }}: {{ item.count }} scans"
+              style="height: {{ (item.count / daily_max * 100) if daily_max else 0 }}%"
+            ></span>
+          </div>
+          {% if loop.index0 % 7 == 0 or loop.last %}
+          <span class="daily-date">{{ item.day[5:] }}</span>
+          {% else %}
+          <span class="daily-date daily-date-empty" aria-hidden="true"></span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+</section>
+
+<section class="panel-grid" aria-label="Crop and disease summary">
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Crops Scanned</h2>
+        <p class="panel-subtitle">Diagnoses by crop type</p>
+      </div>
+    </header>
+    {% if stats.crops %}
+    <ul class="crop-list">
+      {% for item in stats.crops %}
+      <li class="crop-item">
+        <div class="crop-item-heading">
+          <span>{{ item.crop }}</span><strong>{{ item.count }}</strong>
+        </div>
+        <div
+          class="crop-track"
+          role="meter"
+          aria-label="{{ item.crop }} scans"
+          aria-valuemin="0"
+          aria-valuemax="{{ crop_max }}"
+          aria-valuenow="{{ item.count }}"
+        >
+          <span
+            style="width: {{ (item.count / crop_max * 100) if crop_max else 0 }}%"
+          ></span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="panel-empty">No crop data available.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel common-disease-panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Most Common Disease</h2>
+        <p class="panel-subtitle">Your most frequent diagnosis</p>
+      </div>
+    </header>
+    {% if stats.top_disease %}
+    <div class="disease-summary">
+      <span class="disease-icon"
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"
+          ></path>
+          <path d="M3 21c3-6 7-10 13-14"></path></svg
+      ></span>
+      <div>
+        <span class="disease-crop">{{ stats.top_disease.crop }}</span>
+        <h3>{{ stats.top_disease.name }}</h3>
+        <p>Detected {{ stats.top_disease.count }} times</p>
+      </div>
+    </div>
+    {% else %}
+    <div class="disease-empty">
+      <span class="disease-icon"
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"
+          ></path>
+          <path d="M3 21c3-6 7-10 13-14"></path></svg
+      ></span>
+      <p>No disease detected yet</p>
+    </div>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel recent-panel">
+  <header class="panel-header recent-header">
+    <div>
+      <h2 class="panel-title">Recent Diagnoses</h2>
+      <p class="panel-subtitle">Your latest leaf scans</p>
+    </div>
+    <a class="text-link" href="/history"
+      >View all <span aria-hidden="true">&rarr;</span></a
+    >
+  </header>
+
+  <div class="recent-table-wrap">
+    <table class="recent-table">
+      <thead>
+        <tr>
+          <th scope="col">Image</th>
+          <th scope="col">Predicted crop</th>
+          <th scope="col">Selected crop</th>
+          <th scope="col">Result</th>
+          <th scope="col">Confidence</th>
+          <th scope="col">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in stats.recent[:5] %}
+        <tr>
+          <td data-label="Image">
+            {% if item.image_url %}
+            <img
+              class="diagnosis-thumb"
+              src="{{ item.image_url }}"
+              alt="{{ item.crop }} leaf"
+            />
+            {% else %}
+            <span
+              class="diagnosis-thumb thumb-placeholder"
+              aria-label="No image available"
+              ><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"
+                ></path>
+                <path d="M3 21c3-6 7-10 13-14"></path></svg
+            ></span>
+            {% endif %}
+          </td>
+          <td data-label="Predicted crop">{{ item.crop }}</td>
+          <td data-label="Selected crop">{{ item.selected_crop }}</td>
+          <td data-label="Result">{{ item.disease }}</td>
+          <td data-label="Confidence">
+            {% if item.confidence >= 80 %}
+            <span class="confidence-badge confidence-high"
+              >{{ item.confidence }}%</span
+            >
+            {% elif item.confidence >= 60 %}
+            <span class="confidence-badge confidence-medium"
+              >{{ item.confidence }}%</span
+            >
+            {% else %}
+            <span class="confidence-badge confidence-low"
+              >{{ item.confidence }}% <span>Low</span></span
+            >
+            {% endif %}
+          </td>
+          <td data-label="Date">{{ item.date }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td class="table-empty" colspan="6">No recent diagnoses to show.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %} {% endblock %}

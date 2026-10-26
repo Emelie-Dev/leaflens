@@ -1,0 +1,147 @@
+{% extends "app_base.html" %} {% set active_page = "history" %} {% block title
+%}Diagnosis Details | LeafLens{% endblock %} {% block page_title %}Diagnosis
+Details{% endblock %} {% block content %}
+<a class="history-back-link" href="/history"
+  ><span aria-hidden="true">&larr;</span> Back to History</a
+>
+<div class="history-detail-layout">
+  <section class="panel history-image-panel" aria-label="Scanned leaf image">
+    {% if d.image_url %}<img
+      class="history-detail-image"
+      src="{{ d.image_url }}"
+      alt="{{ d.crop }} leaf"
+    />{% else %}
+    <div class="history-detail-placeholder">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <path
+          d="M51 10C32 11 18 17 13 30c-3 9 2 17 11 17 13 0 23-15 27-37Z"
+        ></path>
+        <path d="M10 55c9-16 20-28 36-40"></path></svg
+      ><span>No image available</span>
+    </div>
+    {% endif %}
+    <p class="history-image-date">{{ d.date }}</p>
+    {% if d.crop_type_entered %}
+    <p class="history-selected-crop">
+      Crop you selected: {{ d.crop_type_entered }}
+    </p>
+    {% endif %}
+  </section>
+
+  <article class="panel history-detail-panel">
+    <header class="history-detail-heading">
+      <div>
+        <p class="history-detail-crop">{{ d.crop }}</p>
+        <h2>{{ d.disease }}</h2>
+      </div>
+      {% if d.status == "completed" %}
+      <span
+        class="history-result-badge{% if d.is_healthy %} history-result-healthy{% else %} history-result-diseased{% endif %} history-detail-status"
+        >{{ "Healthy" if d.is_healthy else "Disease detected" }}</span
+      >
+      {% else %}
+      <span class="history-failed history-detail-status">
+        {{ "Processing" if d.status == "pending" else "Analysis failed" }}
+      </span>
+      {% endif %}
+    </header>
+
+    {% if d.status == "completed" %}
+    <section
+      class="history-detail-confidence"
+      aria-label="Confidence {{ d.confidence }} percent"
+    >
+      {% set detail_confidence = d.confidence|float %}
+      <div class="history-confidence-heading">
+        <span>Confidence</span
+        ><strong>{{ detail_confidence|round|int }}%</strong>
+      </div>
+      <div
+        class="diagnosis-meter history-confidence-meter"
+        role="meter"
+        aria-label="Confidence"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ detail_confidence }}"
+      >
+        <span
+          class="diagnosis-meter-fill{% if detail_confidence >= 80 %} is-high{% elif detail_confidence >= 60 %} is-medium{% else %} is-low{% endif %}"
+          style="width: {{ [detail_confidence, 100]|min }}%"
+        ></span>
+      </div>
+    </section>
+    {% if detail_confidence < 60 %}
+    <p class="history-low-notice">
+      Low confidence. Please consult an extension officer to confirm this
+      result.
+    </p>
+    {% endif %}
+
+    <section class="history-detail-copy">
+      <h3>About this condition</h3>
+      <p>{{ d.description }}</p>
+    </section>
+    <section class="diagnosis-treatment history-treatment">
+      <h3>
+        {% if d.is_healthy %}Care Advice{% else %}Recommended Treatment{% endif
+        %}
+      </h3>
+      <p>{{ d.treatment }}</p>
+    </section>
+    {% else %}
+    <p class="history-failed" role="status">
+      {% if d.status == "pending" %}This diagnosis is still processing.{% else
+      %}Analysis failed. No diagnosis details are available.{% endif %}
+    </p>
+    {% endif %}
+
+    <dl class="history-detail-meta">
+      <div>
+        <dt class="bolder-text">Diagnosis ID</dt>
+        <dd>#{{ d.request_id }}</dd>
+      </div>
+      <div>
+        <dt>Model version</dt>
+        <dd>{{ d.model_version }}</dd>
+      </div>
+      <div>
+        <dt>Date</dt>
+        <dd>{{ d.date }}</dd>
+      </div>
+    </dl>
+    <div class="history-detail-actions">
+      <a class="primary-button" href="/upload">Scan Another Leaf</a>
+      <a class="history-outline-button" href="/history">Back to History</a>
+      <button
+        class="history-outline-button history-delete-trigger"
+        type="button"
+        data-delete-url="/history/{{ d.request_id }}/delete"
+      >
+        Delete
+      </button>
+    </div>
+  </article>
+</div>
+
+<dialog
+  class="history-delete-dialog"
+  id="history-delete-dialog"
+  aria-labelledby="history-delete-title"
+  aria-describedby="history-delete-description"
+>
+  <form method="POST" id="history-delete-form">
+    <h2 id="history-delete-title">Delete diagnosis?</h2>
+    <p id="history-delete-description">
+      Delete this diagnosis? This cannot be undone.
+    </p>
+    <div class="history-dialog-actions">
+      <button class="history-cancel-button" type="button" data-dialog-close>
+        Cancel
+      </button>
+      <button class="history-confirm-delete" type="submit">Delete</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %} {% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/history.js') }}" defer></script>
+{% endblock %}

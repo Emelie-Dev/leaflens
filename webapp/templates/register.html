@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Register | Plant Disease Detection System{% endblock %}
+
+{% block content %}
+  <section class="auth-panel register-panel" aria-labelledby="page-heading">
+    <header class="form-heading">
+      <p class="form-eyebrow">GET STARTED</p>
+      <h2 id="page-heading">Register</h2>
+      <p>Set up your account to start checking crop health.</p>
+    </header>
+
+    <form class="auth-form" method="POST" action="/register" data-register-form novalidate>
+      <div class="name-fields">
+        <div class="form-field">
+          <label for="first_name">First Name</label>
+          <input id="first_name" name="first_name" type="text" placeholder="Enter first name" value="{{ request.form.get('first_name', '') }}" maxlength="50" autocomplete="given-name" required>
+        </div>
+        <div class="form-field">
+          <label for="last_name">Last Name</label>
+          <input id="last_name" name="last_name" type="text" placeholder="Enter last name" value="{{ request.form.get('last_name', '') }}" maxlength="50" autocomplete="family-name" required>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="email">Email</label>
+        <div class="input-wrap has-leading-icon">
+          <svg class="field-icon person-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.5"></circle>
+            <path d="M4.5 20c.7-4 3.2-6 7.5-6s6.8 2 7.5 6"></path>
+          </svg>
+          <input id="email" name="email" type="email" placeholder="Enter email" value="{{ request.form.get('email', '') }}" maxlength="100" autocomplete="email" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="phone_number">Phone number <span class="optional-label">Optional</span></label>
+          <input id="phone_number" name="phone_number" type="tel" placeholder="Enter phone number" value="{{ request.form.get('phone_number', '') }}" maxlength="20" autocomplete="tel">
+        </div>
+
+        <div class="form-field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            <option value="farmer"{% if request.form.get('role', 'farmer') == 'farmer' %} selected{% endif %}>Farmer</option>
+            <option value="extension_worker"{% if request.form.get('role') == 'extension_worker' %} selected{% endif %}>Extension Worker</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="password">Password</label>
+          <div class="input-wrap has-leading-icon">
+            <svg class="field-icon lock-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="11" rx="1"></rect>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+            </svg>
+            <input id="password" name="password" type="password" placeholder="Enter password" autocomplete="new-password" minlength="8" required aria-describedby="password-error">
+            <button class="password-toggle" type="button" data-password-toggle aria-controls="password" aria-label="Show password">
+              <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+            />
+          </svg>
+            </button>
+          </div>
+          <p class="field-error" id="password-error" aria-live="polite"></p>
+        </div>
+
+        <div class="form-field">
+          <label for="confirm_password">Confirm Password</label>
+          <div class="input-wrap has-leading-icon">
+            <svg class="field-icon lock-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="11" rx="1"></rect>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+            </svg>
+            <input id="confirm_password" name="confirm_password" type="password" placeholder="Confirm password" autocomplete="new-password" required aria-describedby="confirm-password-error">
+            <button class="password-toggle" type="button" data-password-toggle aria-controls="confirm_password" aria-label="Show password">
+              <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+            />
+          </svg>
+            </button>
+          </div>
+          <p class="field-error" id="confirm-password-error" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <button class="submit-button" type="submit">REGISTER</button>
+    </form>
+
+    <nav class="auth-links" aria-label="Account links">
+      <p>Already have an account? <a href="/login">Login</a></p>
+    </nav>
+  </section>
+{% endblock %}

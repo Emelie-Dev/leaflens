@@ -1,0 +1,82 @@
+{% extends "app_base.html" %}
+{% set active_page = "profile" %}
+
+{% block title %}Profile | LeafLens{% endblock %}
+{% block page_title %}Profile{% endblock %}
+
+{% block content %}
+  {% set first_name = request.form.get('first_name', profile.first_name) %}
+  {% set last_name = request.form.get('last_name', profile.last_name) %}
+  {% set phone_number = request.form.get('phone_number', profile.phone_number or '') %}
+  {% set selected_role = request.form.get('role', profile.role) %}
+  <div class="profile-layout">
+    <div class="profile-main-column">
+      <section class="panel profile-header-card">
+        <div class="profile-avatar" aria-hidden="true">{{ (first_name[:1] ~ last_name[:1])|upper }}</div>
+        <div class="profile-header-info">
+          <h2>{{ first_name }} {{ last_name }}</h2>
+          <span class="profile-role-badge">{{ "Extension Worker" if profile.role == "extension_worker" else "Farmer" }}</span>
+          <p class="profile-email">{{ profile.email }}</p>
+          <p class="profile-member-since">Member since {{ profile.date_registered }}</p>
+        </div>
+      </section>
+
+      <section class="profile-stats" aria-label="Profile summary">
+        <article class="panel profile-stat"><span>Total Scans</span><strong>{{ profile.total_scans }}</strong></article>
+        <article class="panel profile-stat"><span>Last Scan</span><strong>{{ profile.last_scan or "No scans yet" }}</strong></article>
+        <article class="panel profile-stat"><span>Role</span><strong>{{ "Extension Worker" if profile.role == "extension_worker" else "Farmer" }}</strong></article>
+      </section>
+
+      <section class="panel profile-form-panel">
+        <header class="panel-header"><div><h2 class="panel-title">Personal Information</h2><p class="panel-subtitle">Manage your account details.</p></div></header>
+        <form class="profile-personal-form" method="POST" action="/profile/update" id="profile-personal-form">
+          <div class="profile-form-grid">
+            <label class="profile-field"><span>First name</span><input name="first_name" type="text" maxlength="50" required value="{{ first_name }}" /></label>
+            <label class="profile-field"><span>Last name</span><input name="last_name" type="text" maxlength="50" required value="{{ last_name }}" /></label>
+            <label class="profile-field"><span>Phone number</span><input name="phone_number" type="tel" maxlength="20" value="{{ phone_number }}" /></label>
+            <label class="profile-field"><span>Role</span><select name="role"><option value="farmer"{% if selected_role == "farmer" %} selected{% endif %}>Farmer</option><option value="extension_worker"{% if selected_role == "extension_worker" %} selected{% endif %}>Extension Worker</option></select></label>
+            <label class="profile-field profile-field-full"><span>Email</span><input type="email" value="{{ profile.email }}" disabled /><small>Email cannot be changed</small></label>
+          </div>
+          <div class="profile-form-actions"><button class="primary-button" type="submit" id="profile-save-button" disabled>Save Changes</button></div>
+        </form>
+      </section>
+
+      <section class="panel profile-form-panel">
+        <header class="panel-header"><div><h2 class="panel-title">Change Password</h2><p class="panel-subtitle">Choose a strong password you do not use elsewhere.</p></div></header>
+        <form class="profile-password-form" method="POST" action="/profile/password" id="profile-password-form" novalidate>
+          <div class="profile-password-grid">
+            <label class="profile-field"><span>Current password</span><span class="profile-password-wrap"><input name="current_password" type="password" required autocomplete="current-password" /><button class="profile-password-toggle" type="button" aria-label="Show current password" aria-pressed="false">Show</button></span></label>
+            <label class="profile-field"><span>New password</span><span class="profile-password-wrap"><input name="new_password" id="new-password" type="password" minlength="8" maxlength="128" required autocomplete="new-password" /><button class="profile-password-toggle" type="button" aria-label="Show new password" aria-pressed="false">Show</button></span><span class="profile-strength" id="password-strength" aria-live="polite">Password strength: <strong>—</strong></span><span class="profile-field-error" id="new-password-error" role="alert" hidden></span></label>
+            <label class="profile-field"><span>Confirm new password</span><span class="profile-password-wrap"><input name="confirm_password" id="confirm-password" type="password" required autocomplete="new-password" /><button class="profile-password-toggle" type="button" aria-label="Show confirm password" aria-pressed="false">Show</button></span><span class="profile-field-error" id="confirm-password-error" role="alert" hidden></span></label>
+          </div>
+          <div class="profile-form-actions"><button class="primary-button" type="submit">Update Password</button></div>
+        </form>
+      </section>
+
+      <section class="profile-danger-zone">
+        <div><h2>Danger Zone</h2><p>Delete account. This permanently removes your account and all your diagnosis history.</p></div>
+        <button class="profile-delete-account-button" type="button" id="open-account-delete">Delete Account</button>
+      </section>
+    </div>
+
+    <aside class="panel profile-summary-card">
+      <h2>Account Summary</h2>
+      <div class="profile-summary-row"><span>Member since</span><strong>{{ profile.date_registered }}</strong></div>
+      <div class="profile-summary-row"><span>Total scans</span><strong>{{ profile.total_scans }}</strong></div>
+      <div class="profile-summary-row"><span>Last scan</span><strong>{{ profile.last_scan or "No scans yet" }}</strong></div>
+      <div class="profile-summary-row"><span>Account type</span><strong>{{ "Extension Worker" if profile.role == "extension_worker" else "Farmer" }}</strong></div>
+    </aside>
+  </div>
+
+  <dialog class="profile-delete-dialog" id="profile-delete-dialog" aria-labelledby="profile-delete-title" aria-describedby="profile-delete-description">
+    <form method="POST" action="/profile/delete" id="profile-delete-form">
+      <h2 id="profile-delete-title">Delete your account?</h2>
+      <p id="profile-delete-description">This permanently removes your account and all your diagnosis history.</p>
+      <label class="profile-field profile-delete-password"><span>Password</span><input name="password" type="password" autocomplete="current-password" required /></label>
+      <label class="profile-delete-check"><input name="confirm_delete" type="checkbox" value="yes" /><span>I understand this cannot be undone</span></label>
+      <div class="history-dialog-actions"><button class="history-cancel-button" type="button" data-profile-dialog-close>Cancel</button><button class="history-confirm-delete" id="profile-delete-confirm" type="submit" disabled>Delete Account</button></div>
+    </form>
+  </dialog>
+{% endblock %}
+
+{% block extra_scripts %}<script src="{{ url_for('static', filename='js/profile.js') }}" defer></script>{% endblock %}

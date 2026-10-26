@@ -1,0 +1,9 @@
+flask==3.1.*
+gunicorn==23.*
+numpy>=1.26
+pillow>=10.0
+onnxruntime>=1.18
+cloudinary
+PyMySQL
+python-dotenv
+cryptography
