@@ -1,0 +1,29 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "diseases" %}
+{% block title %}{% if mode == 'edit' %}Edit Disease{% else %}Add Disease{% endif %} | LeafLens Admin{% endblock %}
+{% block page_title %}{% if mode == 'edit' %}Edit Disease{% else %}Add Disease{% endif %}{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>{% if mode == 'edit' %}Edit disease{% else %}Add disease{% endif %}</h2>
+    <p>Update the crop disease record.</p>
+  </div>
+  <a class="secondary-link" href="/admin/diseases">Back to diseases</a>
+</section>
+
+<section class="panel">
+  <form class="stacked-form" method="POST" action="{% if mode == 'edit' %}{{ url_for('admin.disease_edit', disease_id=disease_id) }}{% else %}{{ url_for('admin.disease_new') }}{% endif %}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <label><span>Disease name</span><input type="text" name="disease_name" value="{{ form_data.get('disease_name', '') }}" required /></label>
+    <label><span>Crop name</span><input type="text" name="crop_name" value="{{ form_data.get('crop_name', '') }}" required /></label>
+    <label><span>Class label</span><input type="text" name="class_label" value="{{ form_data.get('class_label', '') }}" required /></label>
+    <label class="checkbox-row"><input type="checkbox" name="is_healthy" value="1" {{ 'checked' if form_data.get('is_healthy') in ['1', 1, True] else '' }} /><span>Healthy indicator</span></label>
+    <label><span>Description</span><textarea name="description" rows="4">{{ form_data.get('description', '') }}</textarea></label>
+    <label><span>Recommended treatment</span><textarea name="recommended_treatment" rows="4">{{ form_data.get('recommended_treatment', '') }}</textarea></label>
+    <div class="stacked-actions">
+      <button type="submit" class="primary-button">Save</button>
+      <a class="secondary-link" href="/admin/diseases">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

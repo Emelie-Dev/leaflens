@@ -1,0 +1,56 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "administrators" %}
+{% block title %}Administrators | LeafLens Admin{% endblock %}
+{% block page_title %}Administrators{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>Administrators</h2>
+    <p>Review and manage the admin team.</p>
+  </div>
+</section>
+
+<section class="panel-grid" aria-label="Administrator management">
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Add administrator</h2></div></header>
+    <form class="stacked-form" method="POST" action="/admin/administrators/new">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label><span>First name</span><input type="text" name="first_name" required /></label>
+      <label><span>Last name</span><input type="text" name="last_name" required /></label>
+      <label><span>Email</span><input type="email" name="email" required /></label>
+      <label><span>Password</span><input type="password" name="password" required /></label>
+      <button type="submit" class="primary-button">Add administrator</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Current administrators</h2></div></header>
+    {% if rows %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Date added</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td data-label="Name">{{ row.first_name }} {{ row.last_name }}</td>
+                <td data-label="Email">{{ row.email }}</td>
+                <td data-label="Date added">{{ row.date_added.strftime('%b %d, %Y') if row.date_added else '—' }}</td>
+                <td data-label="Actions" class="admin-actions"><button type="button" class="danger-link" data-confirm-delete data-action="{{ url_for('admin.administrator_delete', admin_id=row.admin_id) }}">Delete</button></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="panel-empty">No administrators found.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

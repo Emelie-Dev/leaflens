@@ -1,0 +1,85 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "users" %}
+{% block title %}User Details | LeafLens Admin{% endblock %}
+{% block page_title %}User Details{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+    <p>{{ user.email }}</p>
+  </div>
+  <a class="secondary-link" href="/admin/users">Back to users</a>
+</section>
+
+<section class="panel-grid" aria-label="User summary metrics">
+  <article class="stat-card compact-card">
+    <div class="stat-value">{{ stats.total }}</div>
+    <div class="stat-label">Total Scans</div>
+  </article>
+  <article class="stat-card compact-card">
+    <div class="stat-value">{{ stats.healthy }}</div>
+    <div class="stat-label">Healthy</div>
+  </article>
+  <article class="stat-card compact-card">
+    <div class="stat-value">{{ stats.diseased }}</div>
+    <div class="stat-label">Diseased</div>
+  </article>
+  <article class="stat-card compact-card">
+    <div class="stat-value">{{ stats.average_confidence|round(1) }}%</div>
+    <div class="stat-label">Average Confidence</div>
+  </article>
+</section>
+
+<section class="panel-grid" aria-label="User records">
+  <article class="panel">
+    <header class="panel-header">
+      <div><h2 class="panel-title">Profile</h2></div>
+    </header>
+    <dl class="detail-list">
+      <div><dt>Full name</dt><dd>{{ user.first_name }} {{ user.last_name }}</dd></div>
+      <div><dt>Email</dt><dd>{{ user.email }}</dd></div>
+      <div><dt>Phone</dt><dd>{{ user.phone_number or '—' }}</dd></div>
+      <div><dt>Role</dt><dd>{{ user.role }}</dd></div>
+      <div><dt>Registered</dt><dd>{{ user.date_registered.strftime('%b %d, %Y') if user.date_registered else '—' }}</dd></div>
+    </dl>
+
+    <form class="stacked-form" method="POST" action="{{ url_for('admin.update_user_role', user_id=user.user_id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label>
+        <span>Role</span>
+        <select name="role">
+          <option value="farmer" {% if user.role == 'farmer' %}selected{% endif %}>Farmer</option>
+          <option value="extension_worker" {% if user.role == 'extension_worker' %}selected{% endif %}>Extension worker</option>
+        </select>
+      </label>
+      <button type="submit" class="primary-button">Update role</button>
+    </form>
+
+    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.user_id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="button" class="danger-button" data-confirm-delete data-action="{{ url_for('admin.delete_user', user_id=user.user_id) }}">Delete user</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <header class="panel-header">
+      <div><h2 class="panel-title">Recent diagnoses</h2></div>
+    </header>
+    {% if history %}
+      <ul class="admin-list">
+        {% for item in history %}
+          <li>
+            <div>
+              <strong>{{ item.crop_type }}</strong>
+              <small>{{ item.disease }}</small>
+            </div>
+            <span>{{ item.date }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No diagnoses found for this user.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

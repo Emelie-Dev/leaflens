@@ -1,0 +1,123 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "reports" %}
+{% block title %}Reports | LeafLens Admin{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>Reports</h2>
+    <p>Review trends across diagnosis activity.</p>
+  </div>
+  <div class="admin-inline-actions">
+    <button type="button" class="primary-button" onclick="window.print()">Print</button>
+    <a class="secondary-link" href="/admin/reports/export.csv?date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}">Export CSV</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="admin-filter-form admin-filter-grid" method="GET" action="/admin/reports">
+    <div class="toggle-row">
+      <a class="secondary-link {{ 'is-active' if quick == '7' else '' }}" href="/admin/reports?quick=7&date_from={{ (date_from if date_from else (today - timedelta(days=6)).isoformat())|urlencode }}&date_to={{ date_to|urlencode }}">Last 7 days</a>
+      <a class="secondary-link {{ 'is-active' if quick == '30' else '' }}" href="/admin/reports?quick=30&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}">Last 30 days</a>
+      <a class="secondary-link {{ 'is-active' if quick == '90' else '' }}" href="/admin/reports?quick=90&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}">Last 90 days</a>
+      <a class="secondary-link {{ 'is-active' if quick == 'all' else '' }}" href="/admin/reports?quick=all">All time</a>
+    </div>
+    <label><span class="sr-only">From</span><input type="date" name="date_from" value="{{ date_from }}" /></label>
+    <label><span class="sr-only">To</span><input type="date" name="date_to" value="{{ date_to }}" /></label>
+    <button type="submit" class="primary-button">Apply</button>
+  </form>
+</section>
+
+<section class="stats-grid" aria-label="Reports summary cards">
+  <article class="stat-card"><span class="stat-icon stat-icon-neutral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"></path><path d="M8 9h8M8 13h5"></path></svg></span><div class="stat-value">{{ summary.diagnoses }}</div><div class="stat-label">Diagnoses in range</div></article>
+  <article class="stat-card"><span class="stat-icon stat-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1"></path><circle cx="10" cy="7" r="3.5"></circle><path d="M20 19v-1a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><div class="stat-value">{{ summary.active_users }}</div><div class="stat-label">Active users</div></article>
+  <article class="stat-card"><span class="stat-icon stat-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20"></path><circle cx="12" cy="12" r="8"></circle></svg></span><div class="stat-value">{{ summary.average_confidence|round(1) }}%</div><div class="stat-label">Average confidence</div></article>
+  <article class="stat-card"><span class="stat-icon stat-icon-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01"></path><circle cx="12" cy="12" r="9"></circle></svg></span><div class="stat-value">{{ summary.low_confidence }}</div><div class="stat-label">Low-confidence results</div></article>
+</section>
+
+<section class="panel-grid" aria-label="Report details">
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Diagnoses per day</h2></div></header>
+    {% if daily %}
+      <div class="daily-chart small-chart" role="img" aria-label="Diagnoses per day chart">
+        <div class="daily-bars">
+          {% set daily_max = daily|map(attribute='count')|max|default(0, true) %}
+          {% for item in daily %}
+            <div class="daily-bar-column">
+              <div class="daily-bar-track"><span class="daily-bar" style="height: {{ ((item.count / daily_max) * 100) if daily_max else 0 }}%" title="{{ item.day }}: {{ item.count }}"></span></div>
+              {% if loop.index0 % 7 == 0 or loop.last %}<span class="daily-date">{{ item.day[-2:] }}</span>{% else %}<span class="daily-date daily-date-empty" aria-hidden="true"></span>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <p class="panel-empty">No data available for this range.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Disease frequency</h2></div></header>
+    {% if disease_rows %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Disease</th><th>Crop</th><th>Count</th><th>Share</th><th>Avg conf.</th></tr></thead>
+          <tbody>
+            {% for row in disease_rows %}
+              <tr>
+                <td>{{ row.disease_name }}</td>
+                <td>{{ row.crop_name }}</td>
+                <td>{{ row.total }}</td>
+                <td>{{ row.share }}%</td>
+                <td>{{ row.avg_confidence|round(1) if row.avg_confidence else '0.0' }}%</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="panel-empty">No disease data found.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel-grid" aria-label="Additional report breakdowns">
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Crop breakdown</h2></div></header>
+    {% if crop_rows %}
+      <ul class="admin-list compact-list">
+        {% for item in crop_rows %}
+          <li><span>{{ item.crop_name }}</span><strong>{{ item.total }}</strong></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No crop data found.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Diagnoses by model</h2></div></header>
+    {% if model_rows %}
+      <ul class="admin-list compact-list">
+        {% for item in model_rows %}
+          <li><span>{{ item.model_version }}</span><strong>{{ item.total }}</strong></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No model data found.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Top 5 active users</h2></div></header>
+    {% if user_rows %}
+      <ul class="admin-list compact-list">
+        {% for item in user_rows %}
+          <li><span>{{ item.first_name }} {{ item.last_name }}</span><strong>{{ item.total }}</strong></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No active users in this range.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

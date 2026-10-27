@@ -1,0 +1,58 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "models" %}
+{% block title %}Models | LeafLens Admin{% endblock %}
+{% block page_title %}Models{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>Model versions</h2>
+    <p>Track deployed model performance and prediction usage.</p>
+  </div>
+</section>
+
+<section class="panel-grid" aria-label="Models overview">
+  <article class="panel">
+    <header class="panel-header">
+      <div><h2 class="panel-title">Add model version</h2></div>
+    </header>
+    <form class="stacked-form" method="POST" action="/admin/models/new">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label><span>Model version</span><input type="text" name="model_version" value="{{ form_data.get('model_version', '') }}" maxlength="50" required /></label>
+      <label><span>Accuracy (%)</span><input type="number" name="accuracy" value="{{ form_data.get('accuracy', '') }}" min="0" max="100" step="0.01" required /></label>
+      <button type="submit" class="primary-button">Add version</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <header class="panel-header">
+      <div><h2 class="panel-title">Versions</h2></div>
+    </header>
+    {% if rows %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Accuracy</th>
+              <th>Deployed</th>
+              <th>Predictions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td data-label="Version">{{ row.model_version }}</td>
+                <td data-label="Accuracy">{{ (row.accuracy * 100)|round(2) }}%</td>
+                <td data-label="Deployed">{{ row.date_deployed.strftime('%b %d, %Y') if row.date_deployed else '—' }}</td>
+                <td data-label="Predictions">{{ row.prediction_count or 0 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="panel-empty">No model versions recorded.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

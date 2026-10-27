@@ -16,6 +16,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from disease_info import DEFAULT_INFO, DISEASE_INFO
 from auth import auth_bp
+from admin import admin_bp
 from db import get_db
 from utils import login_required
 import diagnosis_store as store
@@ -28,6 +29,7 @@ STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
 app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB uploads
 
 _session = None

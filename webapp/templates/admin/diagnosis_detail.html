@@ -1,0 +1,54 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "diagnoses" %}
+{% block title %}Diagnosis Details | LeafLens Admin{% endblock %}
+{% block page_title %}Diagnosis Details{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>Diagnosis #{{ item.request_id }}</h2>
+    <p>{{ item.first_name }} {{ item.last_name }}</p>
+  </div>
+  <a class="secondary-link" href="/admin/diagnoses">Back to diagnoses</a>
+</section>
+
+<section class="panel-grid" aria-label="Diagnosis record">
+  <article class="panel">
+    {% if item.image_path %}<img class="admin-detail-image" src="{{ item.image_path }}" alt="Diagnosis image" />{% else %}<div class="diagnosis-thumb thumb-placeholder admin-empty-image"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"></path><path d="M3 21c3-6 7-10 13-14"></path></svg></div>{% endif %}
+  </article>
+
+  <article class="panel">
+    <header class="panel-header">
+      <div><h2 class="panel-title">Result</h2></div>
+    </header>
+    <dl class="detail-list">
+      <div><dt>User</dt><dd>{{ item.first_name }} {{ item.last_name }}</dd></div>
+      <div><dt>Crop</dt><dd>{{ item.crop_type or item.crop_name or 'Unknown' }}</dd></div>
+      <div><dt>Disease</dt><dd>{{ item.disease_name or 'Analysis failed' }}</dd></div>
+      <div><dt>Confidence</dt><dd>{% if item.confidence_score is none %}Not available{% else %}{{ item.confidence_score|round(1) }}%{% endif %}</dd></div>
+      <div><dt>Model version</dt><dd>{{ item.model_version or '—' }}</dd></div>
+      <div><dt>Date</dt><dd>{{ item.upload_date.strftime('%b %d, %Y') if item.upload_date else '—' }}</dd></div>
+      <div><dt>Status</dt><dd>{{ item.status }}</dd></div>
+    </dl>
+
+    <div class="progress-block">
+      {% if item.confidence_score is not none %}
+        <div class="confidence-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ item.confidence_score|round(1) }}">
+          <span style="width: {{ item.confidence_score }}%"></span>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="detail-copy">
+      <h3>Description</h3>
+      <p>{{ item.description or 'No disease description available.' }}</p>
+      <h3>Treatment</h3>
+      <p>{{ item.recommended_treatment or 'No treatment guidance available.' }}</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.delete_diagnosis', request_id=item.request_id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="button" class="danger-button" data-confirm-delete data-action="{{ url_for('admin.delete_diagnosis', request_id=item.request_id) }}">Delete diagnosis</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

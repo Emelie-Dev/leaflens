@@ -1,0 +1,35 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "account" %}
+{% block title %}Account | LeafLens Admin{% endblock %}
+{% block page_title %}Account{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>Account</h2>
+    <p>Update your administrator profile and password.</p>
+  </div>
+</section>
+
+<section class="panel-grid" aria-label="Admin account forms">
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Profile</h2></div></header>
+    <form class="stacked-form" method="POST" action="/admin/account">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label><span>First name</span><input type="text" name="first_name" value="{{ admin.first_name if admin else '' }}" required /></label>
+      <label><span>Last name</span><input type="text" name="last_name" value="{{ admin.last_name if admin else '' }}" required /></label>
+      <button type="submit" class="primary-button">Save profile</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <header class="panel-header"><div><h2 class="panel-title">Password</h2></div></header>
+    <form class="stacked-form" method="POST" action="/admin/account/password">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label><span>Current password</span><input type="password" name="current_password" required /></label>
+      <label><span>New password</span><input type="password" name="new_password" required /></label>
+      <label><span>Confirm password</span><input type="password" name="confirm_password" required /></label>
+      <button type="submit" class="primary-button">Change password</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

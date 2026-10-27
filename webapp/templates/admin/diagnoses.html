@@ -1,0 +1,80 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "diagnoses" %}
+{% block title %}Diagnoses | LeafLens Admin{% endblock %}
+{% block page_title %}Diagnoses{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>Diagnoses</h2>
+    <p>Review all submitted scans and analysis outcomes.</p>
+  </div>
+</section>
+
+<section class="admin-toolbar panel">
+  <form class="admin-filter-form admin-filter-grid" method="GET" action="/admin/diagnoses">
+    <label class="admin-search"><span class="sr-only">Search user or email</span><input type="search" name="q" value="{{ q }}" placeholder="Search user or email" /></label>
+    <label><span class="sr-only">Crop</span><select name="crop"><option value="" {% if not crop %}selected{% endif %}>All crops</option>{% for crop_option in crop_options %}<option value="{{ crop_option }}" {% if crop == crop_option %}selected{% endif %}>{{ crop_option }}</option>{% endfor %}</select></label>
+    <label><span class="sr-only">Result</span><select name="result"><option value="all" {% if result == 'all' %}selected{% endif %}>All results</option><option value="healthy" {% if result == 'healthy' %}selected{% endif %}>Healthy</option><option value="diseased" {% if result == 'diseased' %}selected{% endif %}>Diseased</option></select></label>
+    <label><span class="sr-only">Confidence</span><select name="confidence"><option value="all" {% if confidence == 'all' %}selected{% endif %}>All confidence</option><option value="high" {% if confidence == 'high' %}selected{% endif %}>High 80+</option><option value="medium" {% if confidence == 'medium' %}selected{% endif %}>Medium 60-79</option><option value="low" {% if confidence == 'low' %}selected{% endif %}>Low below 60</option></select></label>
+    <label><span class="sr-only">Date from</span><input type="date" name="date_from" value="{{ date_from }}" /></label>
+    <label><span class="sr-only">Date to</span><input type="date" name="date_to" value="{{ date_to }}" /></label>
+    <label><span class="sr-only">Sort</span><select name="sort"><option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option><option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest first</option></select></label>
+    <button type="submit" class="primary-button">Apply</button>
+    <a class="secondary-link" href="/admin/diagnoses">Reset</a>
+  </form>
+</section>
+
+<section class="panel">
+  {% if rows %}
+    <div class="admin-table-wrap">
+      <table class="admin-table admin-table-wide">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>User</th>
+            <th>Crop</th>
+            <th>Disease</th>
+            <th>Result</th>
+            <th>Confidence</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td data-label="Image">
+                {% if row.image_path %}<img class="diagnosis-thumb" src="{{ row.image_path }}" alt="Diagnosis image" />{% else %}<span class="diagnosis-thumb thumb-placeholder" aria-label="No image available"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"></path><path d="M3 21c3-6 7-10 13-14"></path></svg></span>{% endif %}
+              </td>
+              <td data-label="User">{{ row.first_name }} {{ row.last_name }}</td>
+              <td data-label="Crop">{{ row.crop_type or row.crop_name or 'Unknown' }}</td>
+              <td data-label="Disease">{{ row.disease_name or 'Analysis failed' }}</td>
+              <td data-label="Result">
+                {% if row.disease_name is none %}<span class="admin-pill is-failed">Analysis failed</span>{% elif row.is_healthy == 1 %}<span class="admin-pill is-healthy">Healthy</span>{% else %}<span class="admin-pill is-diseased">Diseased</span>{% endif %}
+              </td>
+              <td data-label="Confidence">
+                {% if row.confidence_score is none %}<span class="muted-tag">n/a</span>{% elif row.confidence_score >= 80 %}<span class="confidence-badge confidence-high">{{ row.confidence_score|round|int }}%</span>{% elif row.confidence_score >= 60 %}<span class="confidence-badge confidence-medium">{{ row.confidence_score|round|int }}%</span>{% else %}<span class="confidence-badge confidence-low">{{ row.confidence_score|round|int }}%</span>{% endif %}
+              </td>
+              <td data-label="Date">{{ row.upload_date.strftime('%b %d, %Y') if row.upload_date else '—' }}</td>
+              <td data-label="Status"><span class="admin-pill {{ 'is-healthy' if row.status == 'completed' else 'is-failed' }}">{{ row.status }}</span></td>
+              <td data-label="Actions" class="admin-actions"><a class="secondary-link" href="/admin/diagnoses/{{ row.request_id }}">View</a><button type="button" class="danger-link" data-confirm-delete data-action="{{ url_for('admin.delete_diagnosis', request_id=row.request_id) }}">Delete</button></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if pages > 1 %}
+      <nav class="pagination" aria-label="Diagnoses pages">
+        {% if page > 1 %}<a href="/admin/diagnoses?page={{ page - 1 }}&q={{ q|urlencode }}&crop={{ crop|urlencode }}&result={{ result|urlencode }}&confidence={{ confidence|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&sort={{ sort|urlencode }}">Previous</a>{% else %}<span class="is-disabled">Previous</span>{% endif %}
+        {% for page_number in range(1, pages + 1) %}
+          {% if page_number == page %}<span class="is-current" aria-current="page">{{ page_number }}</span>{% else %}<a href="/admin/diagnoses?page={{ page_number }}&q={{ q|urlencode }}&crop={{ crop|urlencode }}&result={{ result|urlencode }}&confidence={{ confidence|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&sort={{ sort|urlencode }}">{{ page_number }}</a>{% endif %}
+        {% endfor %}
+        {% if page < pages %}<a href="/admin/diagnoses?page={{ page + 1 }}&q={{ q|urlencode }}&crop={{ crop|urlencode }}&result={{ result|urlencode }}&confidence={{ confidence|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&sort={{ sort|urlencode }}">Next</a>{% else %}<span class="is-disabled">Next</span>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="panel-empty">No diagnoses match your filters.</p>
+  {% endif %}
+</section>
+{% endblock %}

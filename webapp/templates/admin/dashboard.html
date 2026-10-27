@@ -1,0 +1,195 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "dashboard" %}
+{% block title %}Admin Dashboard | LeafLens{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<section class="admin-page-header">
+  <div>
+    <h2>Operations overview</h2>
+    <p>Monitor the LeafLens system and patient data.</p>
+  </div>
+</section>
+
+<section class="stats-grid" aria-label="Admin statistics">
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-neutral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"></path><path d="M8 9h8M8 13h5"></path></svg></span>
+    <div class="stat-value">{{ stats.total_users }}</div>
+    <div class="stat-label">Total Users</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 2"></path><circle cx="12" cy="12" r="9"></circle></svg></span>
+    <div class="stat-value">{{ stats.new_users }}</div>
+    <div class="stat-label">New Users (30 days)</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-neutral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"></path><path d="M8 10h8M8 14h8"></path></svg></span>
+    <div class="stat-value">{{ stats.total_diagnoses }}</div>
+    <div class="stat-label">Total Diagnoses</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-9"></path><path d="M15 6h6v6"></path></svg></span>
+    <div class="stat-value">{{ stats.diagnoses_30d }}</div>
+    <div class="stat-label">Diagnoses (30 days)</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6"></path></svg></span>
+    <div class="stat-value">{{ stats.healthy }}</div>
+    <div class="stat-label">Healthy</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-red"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 4h.01"></path><path d="M10.3 3.9l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z"></path></svg></span>
+    <div class="stat-value">{{ stats.diseased }}</div>
+    <div class="stat-label">Diseased</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20"></path></svg></span>
+    <div class="stat-value">{{ stats.avg_confidence|round(1) }}%</div>
+    <div class="stat-label">Average Confidence</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01"></path><circle cx="12" cy="12" r="9"></circle></svg></span>
+    <div class="stat-value">{{ stats.low_confidence }}</div>
+    <div class="stat-label">Low Confidence</div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon stat-icon-neutral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"></path><path d="M3 21c3-6 7-10 13-14"></path></svg></span>
+    <div class="stat-value">{{ stats.disease_count }}</div>
+    <div class="stat-label">Diseases in Knowledge Base</div>
+  </article>
+</section>
+
+<section class="panel-grid" aria-label="Dashboard panels">
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Diagnoses in the Last 30 Days</h2>
+        <p class="panel-subtitle">Daily volume</p>
+      </div>
+    </header>
+    {% set daily_max = stats.daily|map(attribute='count')|max|default(0, true) %}
+    <div class="daily-chart" role="img" aria-label="Daily diagnoses chart">
+      <div class="daily-bars">
+        {% for item in stats.daily %}
+          <div class="daily-bar-column">
+            <div class="daily-bar-track"><span class="daily-bar" style="height: {{ ((item.count / daily_max) * 100) if daily_max else 0 }}%" title="{{ item.day }}: {{ item.count }} diagnoses"></span></div>
+            {% if loop.index0 % 7 == 0 or loop.last %}<span class="daily-date">{{ item.day[5:] }}</span>{% else %}<span class="daily-date daily-date-empty" aria-hidden="true"></span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Healthy vs Diseased</h2>
+        <p class="panel-subtitle">Prediction breakdown</p>
+      </div>
+    </header>
+    {% set overall_total = stats.healthy + stats.diseased %}
+    {% set healthy_pct = ((stats.healthy / overall_total) * 100) if overall_total else 0 %}
+    {% set diseased_pct = ((stats.diseased / overall_total) * 100) if overall_total else 0 %}
+    <div class="donut-layout">
+      <div class="donut-chart" role="img" aria-label="Healthy and diseased breakdown" style="--healthy-percent: {{ healthy_pct }}%; --diseased-start: {{ healthy_pct }}%; --diseased-end: {{ healthy_pct + diseased_pct }}%;">
+        <div class="donut-center"><strong>{{ overall_total }}</strong><span>Total</span></div>
+      </div>
+      <ul class="chart-legend">
+        <li><span class="legend-dot legend-green"></span><span>Healthy</span><strong>{{ stats.healthy }}</strong></li>
+        <li><span class="legend-dot legend-red"></span><span>Diseased</span><strong>{{ stats.diseased }}</strong></li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<section class="panel-grid" aria-label="Disease and crop summaries">
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Top 5 Detected Diseases</h2>
+        <p class="panel-subtitle">Diseases only</p>
+      </div>
+    </header>
+    {% if stats.top_diseases %}
+      <ul class="admin-list compact-list">
+        {% for item in stats.top_diseases %}
+          <li><span>{{ item.disease_name }}</span><strong>{{ item.total }}</strong></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No disease data recorded.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Crop Distribution</h2>
+        <p class="panel-subtitle">Most common crop types</p>
+      </div>
+    </header>
+    {% if stats.crop_distribution %}
+      {% set crop_max = stats.crop_distribution|map(attribute='total')|max|default(0, true) %}
+      <ul class="crop-list">
+        {% for item in stats.crop_distribution %}
+          <li class="crop-item">
+            <div class="crop-item-heading"><span>{{ item.crop_name }}</span><strong>{{ item.total }}</strong></div>
+            <div class="crop-track"><span style="width: {{ ((item.total / crop_max) * 100) if crop_max else 0 }}%"></span></div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No crop data available.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel-grid" aria-label="Recent activity">
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Latest Diagnoses</h2>
+        <p class="panel-subtitle">Most recent scans</p>
+      </div>
+    </header>
+    {% if stats.latest_diagnoses %}
+      <ul class="admin-list">
+        {% for item in stats.latest_diagnoses %}
+          <li>
+            <div>
+              <strong>{{ item.user_name }}</strong>
+              <small>{{ item.crop_name }} · {{ item.disease_name }}</small>
+            </div>
+            <span class="admin-pill {{ 'is-healthy' if item.is_healthy else 'is-diseased' }}">{{ 'Healthy' if item.is_healthy else 'Diseased' }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No diagnoses yet.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <h2 class="panel-title">Newest Users</h2>
+        <p class="panel-subtitle">Latest registrations</p>
+      </div>
+    </header>
+    {% if stats.new_users_list %}
+      <ul class="admin-list">
+        {% for item in stats.new_users_list %}
+          <li>
+            <div>
+              <strong>{{ item.name }}</strong>
+              <small>{{ item.email }}</small>
+            </div>
+            <span>{{ item.date_registered }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="panel-empty">No users yet.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

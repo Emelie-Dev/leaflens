@@ -1,0 +1,62 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "diseases" %}
+{% block title %}Diseases | LeafLens Admin{% endblock %}
+{% block page_title %}Diseases{% endblock %}
+{% block content %}
+<section class="admin-page-header admin-page-header-inline">
+  <div>
+    <h2>Disease knowledge base</h2>
+    <p>Manage known crop diseases and treatment guidance.</p>
+  </div>
+  <a class="primary-button" href="/admin/diseases/new">Add disease</a>
+</section>
+
+<section class="admin-toolbar panel">
+  <form class="admin-filter-form" method="GET" action="/admin/diseases">
+    <label class="admin-search"><span class="sr-only">Search diseases</span><input type="search" name="q" value="{{ q }}" placeholder="Search disease or crop" /></label>
+    <label><span class="sr-only">Crop filter</span><select name="crop"><option value="" {% if not crop %}selected{% endif %}>All crops</option>{% for crop_option in crop_options %}<option value="{{ crop_option }}" {% if crop == crop_option %}selected{% endif %}>{{ crop_option }}</option>{% endfor %}</select></label>
+    <button type="submit" class="primary-button">Apply</button>
+    <a class="secondary-link" href="/admin/diseases">Reset</a>
+  </form>
+</section>
+
+<section class="panel">
+  {% if rows %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Disease</th>
+            <th>Crop</th>
+            <th>Class label</th>
+            <th>Type</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td data-label="Disease">{{ row.disease_name }}</td>
+              <td data-label="Crop">{{ row.crop_name }}</td>
+              <td data-label="Class label">{{ row.class_label }}</td>
+              <td data-label="Type"><span class="admin-pill {{ 'is-healthy' if row.is_healthy == 1 else 'is-diseased' }}">{{ 'Healthy' if row.is_healthy == 1 else 'Disease' }}</span></td>
+              <td data-label="Actions" class="admin-actions"><a class="secondary-link" href="/admin/diseases/{{ row.disease_id }}/edit">Edit</a><button type="button" class="danger-link" data-confirm-delete data-action="{{ url_for('admin.disease_delete', disease_id=row.disease_id) }}">Delete</button></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if pages > 1 %}
+      <nav class="pagination" aria-label="Disease pages">
+        {% if page > 1 %}<a href="/admin/diseases?page={{ page - 1 }}&q={{ q|urlencode }}&crop={{ crop|urlencode }}">Previous</a>{% else %}<span class="is-disabled">Previous</span>{% endif %}
+        {% for page_number in range(1, pages + 1) %}
+          {% if page_number == page %}<span class="is-current" aria-current="page">{{ page_number }}</span>{% else %}<a href="/admin/diseases?page={{ page_number }}&q={{ q|urlencode }}&crop={{ crop|urlencode }}">{{ page_number }}</a>{% endif %}
+        {% endfor %}
+        {% if page < pages %}<a href="/admin/diseases?page={{ page + 1 }}&q={{ q|urlencode }}&crop={{ crop|urlencode }}">Next</a>{% else %}<span class="is-disabled">Next</span>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="panel-empty">No diseases match your filters.</p>
+  {% endif %}
+</section>
+{% endblock %}
