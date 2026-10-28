@@ -4,7 +4,7 @@ AI-powered plant disease detection from leaf images. A **ResNet18** CNN (transfe
 **23 classes** across apple, corn, bell pepper, potato and tomato, and a Flask web app reports the disease,
 confidence, top-3 predictions, affected leaf area and recommended treatment.
 
-**Live demo:** https://huggingface.co/spaces/Praneeth9392/plant-disease-detection
+**Live demo:** https://leaflens-khaki.vercel.app/
 
 | Item | Detail |
 |---|---|
