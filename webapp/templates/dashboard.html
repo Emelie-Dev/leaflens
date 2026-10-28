@@ -242,8 +242,7 @@ map(attribute='count') | max | default(0, true) %} {% set crop_max = stats.crops
       <thead>
         <tr>
           <th scope="col">Image</th>
-          <th scope="col">Predicted crop</th>
-          <th scope="col">Selected crop</th>
+          <th scope="col">Crop</th>
           <th scope="col">Result</th>
           <th scope="col">Confidence</th>
           <th scope="col">Date</th>
@@ -271,8 +270,7 @@ map(attribute='count') | max | default(0, true) %} {% set crop_max = stats.crops
             ></span>
             {% endif %}
           </td>
-          <td data-label="Predicted crop">{{ item.crop }}</td>
-          <td data-label="Selected crop">{{ item.selected_crop }}</td>
+          <td data-label="Crop">{{ item.crop }}</td>
           <td data-label="Result">{{ item.disease }}</td>
           <td data-label="Confidence">
             {% if item.confidence >= 80 %}

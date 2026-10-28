@@ -1,7 +1,8 @@
 (function () {
   "use strict";
 
-  var MAX_FILE_SIZE = 8 * 1024 * 1024;
+  var MAX_FILE_SIZE = 5 * 1024 * 1024;
+  var MAX_FILE_ERROR = "Image is too large. Maximum size is 5 MB.";
   var allowedTypes = ["image/jpeg", "image/png"];
   var selectedFile = null;
   var previewUrl = null;
@@ -100,9 +101,7 @@
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      rejectSelectedFile(
-        "This image is larger than 8 MB. Choose a smaller photo.",
-      );
+      rejectSelectedFile(MAX_FILE_ERROR);
       return;
     }
 
@@ -358,9 +357,19 @@
         method: "POST",
         body: formData,
       });
-      var data = await response.json();
+      var data;
+      try {
+        data = await response.json();
+      } catch (_error) {
+        data = {};
+      }
       if (!response.ok) {
-        showError(data.error, response.status);
+        showError(
+          response.status === 413
+            ? data.error || MAX_FILE_ERROR
+            : data.error,
+          response.status,
+        );
         return;
       }
       showDiagnosis(data);

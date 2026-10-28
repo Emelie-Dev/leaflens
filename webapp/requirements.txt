@@ -7,3 +7,4 @@ cloudinary
 PyMySQL
 python-dotenv
 cryptography
+requests

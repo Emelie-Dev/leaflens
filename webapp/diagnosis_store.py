@@ -104,3 +104,35 @@ def save_diagnosis(user_id, img, label, confidence, crop_type=None):
     finally:
         if conn:
             conn.close()
+
+
+def save_failed_request(user_id, img):
+    """Upload a rejected image and record its failed diagnosis request."""
+    url, public_id = _upload_image(img)
+    conn = None
+    try:
+        conn = get_db()
+        conn.begin()
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO tbl_diagnosis_request (user_id, image_path, crop_type, status) "
+                "VALUES (%s, %s, NULL, 'failed')",
+                (user_id, url),
+            )
+            request_id = cur.lastrowid
+        conn.commit()
+        return request_id, url
+    except Exception:
+        try:
+            if conn:
+                conn.rollback()
+        except Exception:
+            pass
+        try:
+            cloudinary.uploader.destroy(public_id, resource_type="image")
+        except Exception:
+            pass
+        raise
+    finally:
+        if conn:
+            conn.close()

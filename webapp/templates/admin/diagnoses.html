@@ -48,7 +48,7 @@
                 {% if row.image_path %}<img class="diagnosis-thumb" src="{{ row.image_path }}" alt="Diagnosis image" />{% else %}<span class="diagnosis-thumb thumb-placeholder" aria-label="No image available"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5 3.2 5.2C13 17.6 18 12 20 4Z"></path><path d="M3 21c3-6 7-10 13-14"></path></svg></span>{% endif %}
               </td>
               <td data-label="User">{{ row.first_name }} {{ row.last_name }}</td>
-              <td data-label="Crop">{{ row.crop_type or row.crop_name or 'Unknown' }}</td>
+              <td data-label="Crop">{{ row.crop_name or 'Unknown' }}</td>
               <td data-label="Disease">{{ row.disease_name or 'Analysis failed' }}</td>
               <td data-label="Result">
                 {% if row.disease_name is none %}<span class="admin-pill is-failed">Analysis failed</span>{% elif row.is_healthy == 1 %}<span class="admin-pill is-healthy">Healthy</span>{% else %}<span class="admin-pill is-diseased">Diseased</span>{% endif %}

@@ -22,7 +22,7 @@
     </header>
     <dl class="detail-list">
       <div><dt>User</dt><dd>{{ item.first_name }} {{ item.last_name }}</dd></div>
-      <div><dt>Crop</dt><dd>{{ item.crop_type or item.crop_name or 'Unknown' }}</dd></div>
+      <div><dt>Crop</dt><dd>{{ item.crop_name or 'Unknown' }}</dd></div>
       <div><dt>Disease</dt><dd>{{ item.disease_name or 'Analysis failed' }}</dd></div>
       <div><dt>Confidence</dt><dd>{% if item.confidence_score is none %}Not available{% else %}{{ item.confidence_score|round(1) }}%{% endif %}</dd></div>
       <div><dt>Model version</dt><dd>{{ item.model_version or '—' }}</dd></div>

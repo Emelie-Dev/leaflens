@@ -20,6 +20,7 @@ from admin import admin_bp
 from db import get_db
 from utils import login_required
 import diagnosis_store as store
+import plantnet_client
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE, "model")
@@ -30,11 +31,19 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
-app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB uploads
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 _session = None
 _classes: list[str] = []
 _metrics: dict = {}
+
+
+@app.errorhandler(413)
+def request_entity_too_large(_error):
+    return jsonify(
+        status="error",
+        error="Image is too large. Maximum size is 5 MB.",
+    ), 413
 
 
 @app.context_processor
@@ -156,6 +165,7 @@ def predict():
         img = ImageOps.exif_transpose(Image.open(io.BytesIO(file.read()))).convert("RGB")
     except Exception:
         return jsonify(error="That file isn't a readable image."), 400
+
     try:
         ort_session = load_model()
     except FileNotFoundError as exc:
@@ -172,13 +182,41 @@ def predict():
     crop, disease = pretty(label)
     healthy = "healthy" in label.lower()
     info = DISEASE_INFO.get(label, DEFAULT_INFO)
-    confidence = round(float(probs[top[0]]) * 100, 1)
+    model_confidence = float(probs[top[0]]) * 100
+    confidence = round(model_confidence, 1)
+    plantnet_result = None
+
+    if model_confidence < 90:
+        plantnet_img = img.copy()
+        plantnet_img.thumbnail((1024, 1024))
+        plantnet_buffer = io.BytesIO()
+        plantnet_img.save(plantnet_buffer, format="JPEG", quality=85)
+        plantnet_result = plantnet_client.identify_crop(plantnet_buffer.getvalue())
+        if not plantnet_result["ok"]:
+            if plantnet_result["reason"] == "unavailable":
+                app.logger.warning("Pl@ntNet unavailable; using the ResNet crop prediction")
+                plantnet_result = None
+            else:
+                saved = None
+                try:
+                    saved = store.save_failed_request(session["user_id"], img)
+                except Exception:
+                    app.logger.exception("Could not save rejected crop request")
+                return jsonify(
+                    status="failed",
+                    saved=saved is not None,
+                    request_id=saved[0] if saved else None,
+                    error="This image does not look like a crop leaf. Please upload a clear photo of a single crop leaf.",
+                ), 422
+
+        if plantnet_result:
+            crop = plantnet_result["crop"]
 
     # Save to Cloudinary + MySQL. If saving fails, the diagnosis is still returned.
     saved = None
     try:
         saved = store.save_diagnosis(
-            session["user_id"], img, label, confidence, request.form.get("crop_type")
+            session["user_id"], img, label, confidence, crop
         )
     except Exception:
         app.logger.exception("Could not save the diagnosis")
@@ -189,6 +227,11 @@ def predict():
         image_url=saved[1] if saved else None,
         label=label,
         crop=crop,
+        status="completed",
+        crop_source="plantnet" if plantnet_result else "resnet",
+        plantnet_score=(
+            round(plantnet_result["score"] * 100, 1) if plantnet_result else None
+        ),
         disease=disease,
         healthy=healthy,
         confidence=confidence,
@@ -253,26 +296,26 @@ def dashboard():
             summary = cur.fetchone() or {}
 
             cur.execute(
-                """SELECT d.crop_name AS crop, COUNT(*) AS count
+                """SELECT COALESCE(r.crop_type, d.crop_name) AS crop, COUNT(*) AS count
                    FROM tbl_diagnosis_request r
                    JOIN tbl_prediction_result p ON p.request_id = r.request_id
                    JOIN tbl_disease d ON d.disease_id = p.disease_id
                    WHERE r.user_id = %s AND r.status = 'completed'
-                   GROUP BY d.crop_name
-                   ORDER BY count DESC, d.crop_name""",
+                   GROUP BY COALESCE(r.crop_type, d.crop_name)
+                   ORDER BY count DESC, COALESCE(r.crop_type, d.crop_name)""",
                 (user_id,),
             )
             crop_rows = cur.fetchall()
 
             cur.execute(
-                """SELECT d.crop_name AS crop, d.disease_name AS name, COUNT(*) AS count
+                """SELECT COALESCE(r.crop_type, d.crop_name) AS crop, d.disease_name AS name, COUNT(*) AS count
                    FROM tbl_diagnosis_request r
                    JOIN tbl_prediction_result p ON p.request_id = r.request_id
                    JOIN tbl_disease d ON d.disease_id = p.disease_id
                    WHERE r.user_id = %s AND r.status = 'completed'
                      AND d.is_healthy = 0
-                   GROUP BY d.crop_name, d.disease_name
-                   ORDER BY count DESC, d.crop_name, d.disease_name
+                   GROUP BY COALESCE(r.crop_type, d.crop_name), d.disease_name
+                   ORDER BY count DESC, COALESCE(r.crop_type, d.crop_name), d.disease_name
                    LIMIT 1""",
                 (user_id,),
             )
@@ -290,8 +333,7 @@ def dashboard():
             daily_rows = cur.fetchall()
 
             cur.execute(
-                """SELECT r.image_path AS image_url, d.crop_name AS crop,
-                          r.crop_type AS selected_crop,
+                """SELECT r.image_path AS image_url, COALESCE(r.crop_type, d.crop_name) AS crop,
                           d.disease_name AS disease, d.is_healthy,
                           p.confidence_score AS confidence, r.upload_date
                    FROM tbl_diagnosis_request r
@@ -325,7 +367,6 @@ def dashboard():
                 {
                     "image_url": row["image_url"],
                     "crop": row["crop"],
-                    "selected_crop": row["selected_crop"] or "Not selected",
                     "disease": "Healthy" if row["is_healthy"] else row["disease"],
                     "confidence": round(float(row["confidence"] or 0)),
                     "date": row["upload_date"].strftime("%b %d, %Y"),
@@ -383,13 +424,13 @@ def history():
 
     if query:
         where.append(
-            "(d.crop_name LIKE %s OR r.crop_type LIKE %s OR d.disease_name LIKE %s)"
+            "(COALESCE(r.crop_type, d.crop_name) LIKE %s OR d.disease_name LIKE %s)"
         )
         search_term = f"%{query}%"
-        params.extend([search_term, search_term, search_term])
+        params.extend([search_term, search_term])
     if crop:
-        where.append("(d.crop_name = %s OR r.crop_type = %s)")
-        params.extend([crop, crop])
+        where.append("COALESCE(r.crop_type, d.crop_name) = %s")
+        params.append(crop)
     if result == "healthy":
         where.append("r.status = 'completed' AND d.is_healthy = 1")
     elif result == "diseased":
@@ -429,8 +470,8 @@ def history():
             direction = "ASC" if sort == "oldest" else "DESC"
             cur.execute(
                 f"""SELECT r.request_id, r.image_path AS image_url,
-                           COALESCE(d.crop_name, r.crop_type, 'Unknown') AS crop,
-                           r.crop_type AS selected_crop, d.disease_name AS disease,
+                       COALESCE(r.crop_type, d.crop_name, 'Unknown') AS crop,
+                       d.disease_name AS disease,
                            d.is_healthy, p.confidence_score AS confidence,
                            r.status, r.upload_date
                     {from_clause}
@@ -446,7 +487,6 @@ def history():
                 "request_id": row["request_id"],
                 "image_url": row["image_url"],
                 "crop": row["crop"],
-                "selected_crop": row["selected_crop"] or "Not selected",
                 "disease": row["disease"] or "",
                 "is_healthy": bool(row["is_healthy"]),
                 "confidence": float(row["confidence"] or 0),
@@ -484,8 +524,7 @@ def history_detail(request_id):
         with conn.cursor() as cur:
             cur.execute(
                 """SELECT r.request_id, r.image_path AS image_url,
-                          r.crop_type AS crop_type_entered,
-                          COALESCE(d.crop_name, r.crop_type, 'Unknown') AS crop,
+                          COALESCE(r.crop_type, d.crop_name, 'Unknown') AS crop,
                           d.disease_name AS disease, d.is_healthy,
                           p.confidence_score AS confidence, d.description,
                           d.recommended_treatment AS treatment,

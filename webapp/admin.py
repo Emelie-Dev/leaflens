@@ -188,11 +188,11 @@ def dashboard():
             )
             stats["new_users"] = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
 
-            cur.execute("SELECT COUNT(*) AS total FROM tbl_diagnosis_request")
+            cur.execute(            "SELECT COUNT(*) AS total FROM tbl_diagnosis_request WHERE status = 'completed'")
             stats["total_diagnoses"] = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
 
             cur.execute(
-                "SELECT COUNT(*) AS total FROM tbl_diagnosis_request WHERE upload_date >= %s",
+                "SELECT COUNT(*) AS total FROM tbl_diagnosis_request WHERE status = 'completed' AND upload_date >= %s",
                 (start.strftime("%Y-%m-%d"),),
             )
             stats["diagnoses_30d"] = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
@@ -215,7 +215,7 @@ def dashboard():
             stats["disease_count"] = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
 
             cur.execute(
-                "SELECT DATE(upload_date) AS day, COUNT(*) AS total FROM tbl_diagnosis_request WHERE upload_date >= %s AND upload_date < %s GROUP BY DATE(upload_date)",
+                "SELECT DATE(upload_date) AS day, COUNT(*) AS total FROM tbl_diagnosis_request WHERE status = 'completed' AND upload_date >= %s AND upload_date < %s GROUP BY DATE(upload_date)",
                 (start.strftime("%Y-%m-%d"), (today + timedelta(days=1)).strftime("%Y-%m-%d")),
             )
             day_counts = {row["day"].isoformat() if hasattr(row["day"], "isoformat") else str(row["day"]): _decimal_to_number(row["total"], 0) for row in cur.fetchall()}
@@ -224,7 +224,7 @@ def dashboard():
                 stats["daily"].append({"day": current_day.strftime("%Y-%m-%d"), "count": day_counts.get(current_day.strftime("%Y-%m-%d"), 0)})
 
             cur.execute(
-                "SELECT d.disease_name AS disease_name, d.crop_name AS crop_name, COUNT(*) AS total FROM tbl_prediction_result p JOIN tbl_disease d ON d.disease_id = p.disease_id JOIN tbl_diagnosis_request r ON r.request_id = p.request_id WHERE d.is_healthy = 0 AND r.status = 'completed' GROUP BY d.disease_id, d.disease_name, d.crop_name ORDER BY total DESC LIMIT 5"
+                "SELECT d.disease_name AS disease_name, COALESCE(r.crop_type, d.crop_name) AS crop_name, COUNT(*) AS total FROM tbl_prediction_result p JOIN tbl_disease d ON d.disease_id = p.disease_id JOIN tbl_diagnosis_request r ON r.request_id = p.request_id WHERE d.is_healthy = 0 AND r.status = 'completed' GROUP BY d.disease_id, d.disease_name, COALESCE(r.crop_type, d.crop_name) ORDER BY total DESC LIMIT 5"
             )
             stats["top_diseases"] = [
                 {"disease_name": row["disease_name"], "crop_name": row["crop_name"], "total": _decimal_to_number(row["total"], 0)}
@@ -232,7 +232,7 @@ def dashboard():
             ]
 
             cur.execute(
-                "SELECT d.crop_name AS crop_name, COUNT(*) AS total FROM tbl_prediction_result p JOIN tbl_disease d ON d.disease_id = p.disease_id JOIN tbl_diagnosis_request r ON r.request_id = p.request_id WHERE r.status = 'completed' GROUP BY d.crop_name ORDER BY total DESC LIMIT 5"
+                "SELECT COALESCE(r.crop_type, d.crop_name) AS crop_name, COUNT(*) AS total FROM tbl_prediction_result p JOIN tbl_disease d ON d.disease_id = p.disease_id JOIN tbl_diagnosis_request r ON r.request_id = p.request_id WHERE r.status = 'completed' GROUP BY COALESCE(r.crop_type, d.crop_name) ORDER BY total DESC LIMIT 5"
             )
             stats["crop_distribution"] = [
                 {"crop_name": row["crop_name"], "total": _decimal_to_number(row["total"], 0)}
@@ -240,7 +240,7 @@ def dashboard():
             ]
 
             cur.execute(
-                "SELECT r.request_id, u.first_name, u.last_name, d.crop_name, d.disease_name, d.is_healthy, p.confidence_score, r.upload_date FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id ORDER BY r.upload_date DESC LIMIT 5"
+                "SELECT r.request_id, u.first_name, u.last_name, COALESCE(r.crop_type, d.crop_name) AS crop_name, d.disease_name, d.is_healthy, p.confidence_score, r.upload_date FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id ORDER BY r.upload_date DESC LIMIT 5"
             )
             stats["latest_diagnoses"] = [
                 {
@@ -310,7 +310,7 @@ def users():
             total = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
 
             cur.execute(
-                "SELECT u.user_id, u.first_name, u.last_name, u.email, u.role, u.date_registered, COALESCE(r.scan_count, 0) AS scan_count, r.last_scan FROM tbl_users u LEFT JOIN (SELECT user_id, COUNT(*) AS scan_count, MAX(upload_date) AS last_scan FROM tbl_diagnosis_request GROUP BY user_id) r ON r.user_id = u.user_id WHERE " + where_clause + " ORDER BY u.date_registered DESC LIMIT %s OFFSET %s",
+                "SELECT u.user_id, u.first_name, u.last_name, u.email, u.role, u.date_registered, COALESCE(r.scan_count, 0) AS scan_count, r.last_scan FROM tbl_users u LEFT JOIN (SELECT user_id, COUNT(*) AS scan_count, MAX(upload_date) AS last_scan FROM tbl_diagnosis_request WHERE status = 'completed' GROUP BY user_id) r ON r.user_id = u.user_id WHERE " + where_clause + " ORDER BY u.date_registered DESC LIMIT %s OFFSET %s",
                 (*params, per_page, (page - 1) * per_page),
             )
             rows = cur.fetchall()
@@ -363,14 +363,14 @@ def user_detail(user_id):
             stats["average_confidence"] = _decimal_to_number(summary.get("avg_confidence"), 0)
 
             cur.execute(
-                "SELECT r.request_id, r.upload_date, r.crop_type, d.crop_name, d.disease_name, d.is_healthy, p.confidence_score FROM tbl_diagnosis_request r LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.user_id = %s ORDER BY r.upload_date DESC LIMIT 10",
+                "SELECT r.request_id, r.upload_date, COALESCE(r.crop_type, d.crop_name) AS crop_type, d.disease_name, d.is_healthy, p.confidence_score FROM tbl_diagnosis_request r LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.user_id = %s ORDER BY r.upload_date DESC LIMIT 10",
                 (user_id,),
             )
             history = [
                 {
                     "request_id": row["request_id"],
                     "date": _format_date(row["upload_date"]),
-                    "crop_type": row["crop_type"] or row["crop_name"] or "Unknown",
+                    "crop_type": row["crop_type"] or "Unknown",
                     "disease": row["disease_name"] or "Analysis failed",
                     "healthy": bool(row.get("is_healthy")),
                     "confidence": _decimal_to_number(row.get("confidence_score"), 0),
@@ -467,8 +467,8 @@ def diagnoses():
         term = f"%{q}%"
         params.extend([term, term, term])
     if crop:
-        where.append("(r.crop_type = %s OR d.crop_name = %s)")
-        params.extend([crop, crop])
+        where.append("COALESCE(r.crop_type, d.crop_name) = %s")
+        params.append(crop)
     if result == "healthy":
         where.append("d.is_healthy = 1")
     elif result == "diseased":
@@ -504,7 +504,7 @@ def diagnoses():
             total = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
 
             cur.execute(
-                "SELECT r.request_id, u.first_name, u.last_name, r.image_path, r.crop_type, d.crop_name, d.disease_name, d.is_healthy, p.confidence_score, r.upload_date, r.status FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE " + " AND ".join(where) + " " + order + " LIMIT %s OFFSET %s",
+                "SELECT r.request_id, u.first_name, u.last_name, r.image_path, COALESCE(r.crop_type, d.crop_name) AS crop_name, d.disease_name, d.is_healthy, p.confidence_score, r.upload_date, r.status FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE " + " AND ".join(where) + " " + order + " LIMIT %s OFFSET %s",
                 (*params, per_page, (page - 1) * per_page),
             )
             rows = cur.fetchall()
@@ -543,7 +543,7 @@ def diagnosis_detail(request_id):
         conn = get_db()
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT r.request_id, r.image_path, r.crop_type, r.upload_date, r.status, u.first_name, u.last_name, u.email, d.crop_name, d.disease_name, d.description, d.recommended_treatment, d.is_healthy, p.confidence_score, m.model_version FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id LEFT JOIN tbl_model_version m ON m.model_id = p.model_id WHERE r.request_id = %s",
+                "SELECT r.request_id, r.image_path, COALESCE(r.crop_type, d.crop_name) AS crop_name, r.upload_date, r.status, u.first_name, u.last_name, u.email, d.disease_name, d.description, d.recommended_treatment, d.is_healthy, p.confidence_score, m.model_version FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id LEFT JOIN tbl_prediction_result p ON p.request_id = r.request_id LEFT JOIN tbl_disease d ON d.disease_id = p.disease_id LEFT JOIN tbl_model_version m ON m.model_id = p.model_id WHERE r.request_id = %s",
                 (request_id,),
             )
             item = cur.fetchone()
@@ -874,13 +874,13 @@ def reports():
         conn = get_db()
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT COUNT(*) AS total FROM tbl_diagnosis_request WHERE upload_date >= %s AND upload_date <= %s",
+                "SELECT COUNT(*) AS total FROM tbl_diagnosis_request WHERE status = 'completed' AND upload_date >= %s AND upload_date <= %s",
                 (date_from, date_to + " 23:59:59"),
             )
             summary["diagnoses"] = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
 
             cur.execute(
-                "SELECT COUNT(DISTINCT user_id) AS total FROM tbl_diagnosis_request WHERE upload_date >= %s AND upload_date <= %s",
+                "SELECT COUNT(DISTINCT user_id) AS total FROM tbl_diagnosis_request WHERE status = 'completed' AND upload_date >= %s AND upload_date <= %s",
                 (date_from, date_to + " 23:59:59"),
             )
             summary["active_users"] = _decimal_to_number((cur.fetchone() or {}).get("total"), 0)
@@ -900,7 +900,7 @@ def reports():
                 daily.append({"day": current_day.isoformat(), "count": 0})
 
             cur.execute(
-                "SELECT DATE(upload_date) AS day, COUNT(*) AS total FROM tbl_diagnosis_request WHERE upload_date >= %s AND upload_date <= %s GROUP BY DATE(upload_date)",
+                "SELECT DATE(upload_date) AS day, COUNT(*) AS total FROM tbl_diagnosis_request WHERE status = 'completed' AND upload_date >= %s AND upload_date <= %s GROUP BY DATE(upload_date)",
                 (date_from, date_to + " 23:59:59"),
             )
             entries = cur.fetchall()
@@ -909,13 +909,13 @@ def reports():
                 item["count"] = mapping.get(item["day"], 0)
 
             cur.execute(
-                "SELECT d.disease_name, d.crop_name, COUNT(*) AS total, ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM tbl_prediction_result p2 JOIN tbl_diagnosis_request r2 ON r2.request_id = p2.request_id WHERE r2.upload_date >= %s AND r2.upload_date <= %s), 2) AS share, AVG(p.confidence_score) AS avg_confidence FROM tbl_prediction_result p JOIN tbl_diagnosis_request r ON r.request_id = p.request_id JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.upload_date >= %s AND r.upload_date <= %s GROUP BY d.disease_id, d.disease_name, d.crop_name ORDER BY total DESC LIMIT 20",
+                "SELECT d.disease_name, COALESCE(r.crop_type, d.crop_name) AS crop_name, COUNT(*) AS total, ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM tbl_prediction_result p2 JOIN tbl_diagnosis_request r2 ON r2.request_id = p2.request_id WHERE r2.upload_date >= %s AND r2.upload_date <= %s), 2) AS share, AVG(p.confidence_score) AS avg_confidence FROM tbl_prediction_result p JOIN tbl_diagnosis_request r ON r.request_id = p.request_id JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.upload_date >= %s AND r.upload_date <= %s GROUP BY d.disease_id, d.disease_name, COALESCE(r.crop_type, d.crop_name) ORDER BY total DESC LIMIT 20",
                 (date_from, date_to + " 23:59:59", date_from, date_to + " 23:59:59"),
             )
             disease_rows = cur.fetchall()
 
             cur.execute(
-                "SELECT d.crop_name AS crop_name, COUNT(*) AS total FROM tbl_prediction_result p JOIN tbl_diagnosis_request r ON r.request_id = p.request_id JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.upload_date >= %s AND r.upload_date <= %s GROUP BY d.crop_name ORDER BY total DESC",
+                "SELECT COALESCE(r.crop_type, d.crop_name) AS crop_name, COUNT(*) AS total FROM tbl_prediction_result p JOIN tbl_diagnosis_request r ON r.request_id = p.request_id JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.upload_date >= %s AND r.upload_date <= %s GROUP BY COALESCE(r.crop_type, d.crop_name) ORDER BY total DESC",
                 (date_from, date_to + " 23:59:59"),
             )
             crop_rows = cur.fetchall()
@@ -927,7 +927,7 @@ def reports():
             model_rows = cur.fetchall()
 
             cur.execute(
-                "SELECT u.user_id, u.first_name, u.last_name, COUNT(*) AS total FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id WHERE r.upload_date >= %s AND r.upload_date <= %s GROUP BY u.user_id, u.first_name, u.last_name ORDER BY total DESC LIMIT 5",
+                "SELECT u.user_id, u.first_name, u.last_name, COUNT(*) AS total FROM tbl_diagnosis_request r JOIN tbl_users u ON u.user_id = r.user_id WHERE r.status = 'completed' AND r.upload_date >= %s AND r.upload_date <= %s GROUP BY u.user_id, u.first_name, u.last_name ORDER BY total DESC LIMIT 5",
                 (date_from, date_to + " 23:59:59"),
             )
             user_rows = cur.fetchall()
@@ -965,7 +965,7 @@ def export_reports_csv():
         conn = get_db()
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT d.disease_name AS disease_name, d.crop_name AS crop_name, COUNT(*) AS total, ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM tbl_prediction_result p2 JOIN tbl_diagnosis_request r2 ON r2.request_id = p2.request_id WHERE r2.upload_date >= %s AND r2.upload_date <= %s), 2) AS share, AVG(p.confidence_score) AS avg_confidence FROM tbl_prediction_result p JOIN tbl_diagnosis_request r ON r.request_id = p.request_id JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.upload_date >= %s AND r.upload_date <= %s GROUP BY d.disease_id, d.disease_name, d.crop_name ORDER BY total DESC",
+                "SELECT d.disease_name AS disease_name, COALESCE(r.crop_type, d.crop_name) AS crop_name, COUNT(*) AS total, ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM tbl_prediction_result p2 JOIN tbl_diagnosis_request r2 ON r2.request_id = p2.request_id WHERE r2.upload_date >= %s AND r2.upload_date <= %s), 2) AS share, AVG(p.confidence_score) AS avg_confidence FROM tbl_prediction_result p JOIN tbl_diagnosis_request r ON r.request_id = p.request_id JOIN tbl_disease d ON d.disease_id = p.disease_id WHERE r.upload_date >= %s AND r.upload_date <= %s GROUP BY d.disease_id, d.disease_name, COALESCE(r.crop_type, d.crop_name) ORDER BY total DESC",
                 (date_from, date_to + " 23:59:59", date_from, date_to + " 23:59:59"),
             )
             rows = cur.fetchall()

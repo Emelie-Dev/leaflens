@@ -54,7 +54,7 @@
       {% if pages <= 5 %}{% set pagination_start = 1 %}{% set pagination_end = pages %}{% elif page <= 3 %}{% set pagination_start = 1 %}{% set pagination_end = 5 %}{% elif page >= pages - 2 %}{% set pagination_start = pages - 3 %}{% set pagination_end = pages %}{% else %}{% set pagination_start = page - 1 %}{% set pagination_end = page + 1 %}{% endif %}
       <div class="recent-table-wrap history-table-wrap">
         <table class="recent-table history-table">
-          <thead><tr><th scope="col">Image</th><th scope="col">Predicted crop</th><th scope="col">Selected crop</th><th scope="col">Result</th><th scope="col">Confidence</th><th scope="col">Date</th><th scope="col">Actions</th></tr></thead>
+          <thead><tr><th scope="col">Image</th><th scope="col">Crop</th><th scope="col">Result</th><th scope="col">Confidence</th><th scope="col">Date</th><th scope="col">Actions</th></tr></thead>
           <tbody>
             {% for item in items %}
               {% set detail_url = "/history/" ~ item.request_id %}
@@ -62,8 +62,7 @@
                 <td data-label="Image">
                   {% if item.image_url %}<img class="diagnosis-thumb history-thumb" src="{{ item.image_url }}" alt="{{ item.crop }} leaf" />{% else %}<span class="diagnosis-thumb thumb-placeholder history-thumb" aria-label="No image available"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 .2-14 2.5-16 8-.9 2.7.5 5.2 3.2 5.2C13 17.6 18 12 20 4Z"></path><path d="M3 21c3-6 7-10 13-14"></path></svg></span>{% endif %}
                 </td>
-                <td data-label="Predicted crop">{{ item.crop }}</td>
-                <td data-label="Selected crop">{{ item.selected_crop }}</td>
+                <td data-label="Crop">{{ item.crop }}</td>
                 <td data-label="Result">
                   {% if item.status == "failed" %}<span class="history-failed">Analysis failed</span>{% elif item.status == "pending" %}<span class="history-failed">Analysis in progress</span>{% else %}{% if not item.is_healthy %}<span>{{ item.disease }}</span>{% endif %} <span class="history-result-badge{% if item.is_healthy %} history-result-healthy{% else %} history-result-diseased{% endif %}">{{ "Healthy" if item.is_healthy else "Diseased" }}</span>{% endif %}
                 </td>
