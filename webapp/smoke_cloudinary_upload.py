@@ -1,3 +1,5 @@
+"""Manually upload and delete a test image using configured Cloudinary credentials."""
+
 import io
 import os
 

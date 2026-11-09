@@ -28,3 +28,15 @@ pip install -r requirements.txt
 # put plant_resnet18.onnx, class_names.json, metrics.json (from the Colab notebook) in webapp/model/
 python app.py   # http://localhost:7860
 ```
+
+## Run tests
+
+The offline test suite covers core image-processing behavior and key Flask routes. It does not
+need database or third-party service credentials, or the model file.
+
+```bash
+python -m pip install -r webapp/requirements-dev.txt
+python -m pytest
+```
+
+GitHub Actions runs these tests on Python 3.11 and 3.12 for pushes and pull requests.

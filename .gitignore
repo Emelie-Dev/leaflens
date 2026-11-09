@@ -1,5 +1,6 @@
 PDD dataset/
 __pycache__/
+.pytest_cache/
 *.pyc
 .ipynb_checkpoints/
 .venv/

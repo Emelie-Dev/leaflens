@@ -1,3 +1,5 @@
+"""Manually send a test email using configured mail credentials."""
+
 import os
 import smtplib
 from email.message import EmailMessage

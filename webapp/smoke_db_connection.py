@@ -1,4 +1,4 @@
-# webapp/test_db.py
+# Manual database connectivity smoke check.
 from db import get_db
 
 conn = get_db()
